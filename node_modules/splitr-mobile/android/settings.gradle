@@ -1,0 +1,21 @@
+rootProject.name = 'paxa'
+
+// Resolve node_modules: check mobile/node_modules first, then monorepo root
+def rnCommunityPath = new File("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+def rnCommunityPathRoot = new File("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+def rnGradlePlugin = new File("../node_modules/@react-native/gradle-plugin")
+def rnGradlePluginRoot = new File("../../node_modules/@react-native/gradle-plugin")
+
+if (rnCommunityPath.exists()) {
+    apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
+} else {
+    apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
+}
+
+include ':app'
+
+if (rnGradlePlugin.exists()) {
+    includeBuild('../node_modules/@react-native/gradle-plugin')
+} else {
+    includeBuild('../../node_modules/@react-native/gradle-plugin')
+}

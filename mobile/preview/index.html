@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f4f2ec">
+<title>paxa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /*
+   * paxa — premium payment-app build (SplitR Premium.dc.html).
+   * Warm canvas, dark wallet hero cards, soft depth, Sora display type,
+   * floating blurred tab bar, one electric lime accent. Same engine as the
+   * React Native app; this is the self-contained mobile web preview.
+   */
+  :root{
+    --ink:#16150f; --canvas:#f4f2ec; --lime:#c2f23f; --limeDark:#3f6b00;
+    --m1:#8a887d; --m2:#a3a196; --m3:#6f6d63; --line:rgba(20,20,15,0.06);
+    --pink:#fa00ff; --cyan:#02bbff; --khaki:#e7e3bf;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);
+    background:linear-gradient(170deg,#efece4 0%,#e8e5dc 60%,#e3e0d6 100%);
+    display:flex;align-items:stretch;justify-content:center;
+  }
+  #app{
+    position:relative;width:100%;max-width:440px;min-height:100dvh;background:var(--canvas);
+    overflow:hidden;display:flex;flex-direction:column;
+  }
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .scroll::-webkit-scrollbar{width:0;height:0;}
+  .sora{font-family:'Space Grotesk','Hanken Grotesk',sans-serif;}
+  .row{display:flex;}
+  .between{display:flex;align-items:center;justify-content:space-between;}
+  .center{display:flex;align-items:center;justify-content:center;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 6px 16px rgba(20,20,15,0.05);}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;}
+  input{font-family:inherit;}
+  @keyframes up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes pop{0%{transform:scale(.5);opacity:0;}70%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+  @keyframes fall{0%{transform:translateY(-10px) rotate(0);opacity:0;}12%{opacity:1;}100%{transform:translateY(380px) rotate(220deg);opacity:0;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+(function(){
+  var C={ink:'#16150f',canvas:'#f4f2ec',lime:'#c2f23f',limeDark:'#3f6b00',m1:'#8a887d',m2:'#a3a196',m3:'#6f6d63',
+    line:'rgba(20,20,15,0.06)',pink:'#fa00ff',cyan:'#02bbff',khaki:'#e7e3bf'};
+
+  // paxa twin-bar mark (recolors per surface)
+  function paxa(size,color){var s=size||22;return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 64 64" fill="'+(color||C.ink)+'"><g transform="skewX(-15)"><rect x="28" y="12" width="29" height="13.5" rx="6.5"/><rect x="28" y="18" width="13.5" height="28" rx="6.5"/><rect x="12" y="38.5" width="29" height="13.5" rx="6.5"/></g></svg>';}
+
+  // ---- data ----
+  var M={you:{id:'you',name:'You',initials:'You',color:C.pink,vpa:'riya@okhdfc'},aarav:{id:'aarav',name:'Aarav',initials:'Aa',color:C.cyan,vpa:'aarav@oksbi'},
+    priya:{id:'priya',name:'Priya',initials:'Pr',color:C.lime,vpa:'priya@okaxis'},rohan:{id:'rohan',name:'Rohan',initials:'Ro',color:C.khaki,vpa:'rohan@okhdfc'},
+    meera:{id:'meera',name:'Meera',initials:'Me',color:C.pink,vpa:'meera@okicici'}};
+  var TINT={'#fa00ff':'#f6e6f3','#02bbff':'#e3eef5','#c2f23f':'#edf7cf','#adff02':'#edf7cf','#e7e3bf':'#f0ecdd'};
+  var CATTINT={Food:'#edf7cf',Travel:'#e3eef5',Stay:'#f0ecdd',Fun:'#f6e6f3',Rent:'#e3eef5',Bills:'#f0ecdd'};
+  function seed(){return [
+    {id:'goa',name:'Goa Trip 2026',fill:C.khaki,members:['you','aarav','priya','rohan'],expenses:[
+      {id:'goa-e1',title:'Beach shack lunch',cat:'Food',amount:2400,paidBy:'aarav',date:'Today',involved:['you','aarav','priya','rohan']},
+      {id:'goa-e2',title:'Scooter rentals',cat:'Travel',amount:1600,paidBy:'you',date:'Yesterday',involved:['you','aarav','priya','rohan']},
+      {id:'goa-e3',title:'Hotel — night 1',cat:'Stay',amount:6400,paidBy:'priya',date:'2 days ago',involved:['you','aarav','priya','rohan']},
+      {id:'goa-e4',title:'Club night',cat:'Fun',amount:3000,paidBy:'rohan',date:'2 days ago',involved:['you','aarav','rohan']}]},
+    {id:'flat',name:'Flat 4B',fill:C.cyan,members:['you','aarav','meera'],expenses:[
+      {id:'flat-e1',title:'October rent',cat:'Rent',amount:45000,paidBy:'you',date:'Oct 1',involved:['you','aarav','meera']},
+      {id:'flat-e2',title:'Wifi + electricity',cat:'Bills',amount:3600,paidBy:'meera',date:'Oct 3',involved:['you','aarav','meera']},
+      {id:'flat-e3',title:'Groceries',cat:'Food',amount:2100,paidBy:'you',date:'Oct 5',involved:['you','aarav','meera']}]},
+    {id:'din',name:'Friday Dinners',fill:C.pink,members:['you','priya','meera','rohan'],settledBase:true,expenses:[
+      {id:'din-e1',title:'Sushi night',cat:'Food',amount:4800,paidBy:'you',date:'Last Fri',involved:['you','priya','meera','rohan']}]}
+  ];}
+
+  // ---- state ----
+  var S={screen:'onboarding',groupId:'goa',tab:'balances',billId:'goa-e1',sheet:null,settleMethod:'upi',
+    settleTarget:null,settledPairs:{},log:{},userColor:C.pink,groups:seed(),exp:null,grp:null,toast:null,reminded:{}};
+  var CATBAR={Food:'#c2f23f',Travel:'#02bbff',Stay:'#e7e3bf',Fun:'#fa00ff',Rent:'#8aa0ff',Bills:'#f5b54a'};
+  // paxa takes no fee — money moves peer-to-peer through the user's UPI app.
+  function upiUrl(vpa,name,amount,note){return 'upi://pay?pa='+encodeURIComponent(vpa)+'&pn='+encodeURIComponent(name)+'&am='+amount.toFixed(2)+'&cu=INR&tn='+encodeURIComponent(note||'paxa settlement');}
+  var toastTimer;
+  function flash(msg){S.toast=msg;render();if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){S.toast=null;render();},2200);}
+
+  // ---- logic ----
+  function fmt(n){return '₹'+Math.round(n).toLocaleString('en-IN');}
+  function group(id){id=id||S.groupId;return S.groups.find(function(g){return g.id===id;});}
+  function tintOf(f){return TINT[f]||'#f0ecdd';}
+  function pairwise(g){var map={};g.members.forEach(function(m){if(m!=='you')map[m]=0;});
+    g.expenses.forEach(function(e){var sh=e.amount/e.involved.length;
+      if(e.paidBy!=='you'&&e.involved.indexOf('you')>-1&&map[e.paidBy]!==undefined)map[e.paidBy]+=sh;
+      if(e.paidBy==='you')e.involved.forEach(function(m){if(m!=='you'&&map[m]!==undefined)map[m]-=sh;});});return map;}
+  function youOwe(g){var m=pairwise(g),t=0;Object.keys(m).forEach(function(id){if(m[id]>0&&!S.settledPairs[g.id+':'+id])t+=m[id];});return t;}
+  function owed(g){var m=pairwise(g),t=0;Object.keys(m).forEach(function(id){if(m[id]<0)t+=-m[id];});return t;}
+  function topCreditor(g){var m=pairwise(g),best=null,a=0;Object.keys(m).forEach(function(k){if(m[k]>a&&!S.settledPairs[g.id+':'+k]){a=m[k];best=k;}});return best?M[best]:M[g.members.find(function(x){return x!=='you';})];}
+  function settled(g){if(g.settledBase&&!S.log[g.id])return true;return youOwe(g)<1&&owed(g)<1;}
+  function invIds(e){return Object.keys(e.involved).filter(function(k){return e.involved[k];});}
+  function splits(e){var amt=parseFloat(e.amount)||0,ids=invIds(e),out={};
+    if(e.mode==='equal')ids.forEach(function(id){out[id]=ids.length?amt/ids.length:0;});
+    else if(e.mode==='exact')ids.forEach(function(id){out[id]=parseFloat(e.vals[id])||0;});
+    else if(e.mode==='percent')ids.forEach(function(id){out[id]=amt*(parseFloat(e.vals[id])||0)/100;});
+    else if(e.mode==='shares'){var t=0;ids.forEach(function(id){t+=parseFloat(e.vals[id])||0;});ids.forEach(function(id){out[id]=t?amt*(parseFloat(e.vals[id])||0)/t:0;});}
+    return out;}
+  function valid(e){if(!e)return false;var amt=parseFloat(e.amount)||0,ids=invIds(e);
+    if(!e.title.trim()||amt<=0||!ids.length)return false;if(e.mode==='equal'||e.mode==='shares')return true;
+    var sp=splits(e),s=0;ids.forEach(function(id){s+=sp[id];});return Math.abs(s-amt)<1;}
+
+  function insights(){
+    var cat={},spend=0;
+    S.groups.forEach(function(g){g.expenses.forEach(function(e){if(e.involved.indexOf('you')<0)return;var sh=e.amount/e.involved.length;spend+=sh;cat[e.cat]=(cat[e.cat]||0)+sh;});});
+    var max=Math.max(1,...Object.values(cat));
+    var cats=Object.keys(cat).sort(function(a,b){return cat[b]-cat[a];}).map(function(n){return {name:n,color:CATBAR[n]||C.khaki,amount:fmt(cat[n]),pct:Math.round(cat[n]/(spend||1)*100)+'%',barW:Math.max(6,Math.round(cat[n]/max*100))};});
+    var tv=[0.42,0.61,0.38,0.74,0.55,1.0],tl=['Jan','Feb','Mar','Apr','May','Jun'];
+    var bars=tv.map(function(v,i){var last=i===tv.length-1;return {label:tl[i],h:Math.round(v*100),last:last,amount:last?fmt(spend):''};});
+    return {total:fmt(spend),topCatName:cats[0]?cats[0].name:'—',topCatPct:cats[0]?cats[0].pct:'',categories:cats,trendBars:bars};
+  }
+
+  // ---- actions ----
+  function openSheet(name,target){
+    if(name==='addExpense'){var g=group();var inv={};g.members.forEach(function(m){inv[m]=true;});S.exp={title:'',amount:'',paidBy:'you',mode:'equal',involved:inv,vals:{}};}
+    if(name==='createGroup')S.grp={name:'',color:C.cyan,members:{you:true}};
+    if(name==='settle'){S.settleMethod='upi';S.settleTarget=target||null;}
+    S.sheet=name;render();}
+  function addExpense(){var e=S.exp,g=group();if(!valid(e))return;var amt=parseFloat(e.amount)||0;
+    g.expenses.unshift({id:g.id+'-u'+Date.now(),title:e.title.trim(),cat:'Food',amount:amt,paidBy:e.paidBy,date:'Just now',involved:invIds(e)});
+    Object.keys(S.settledPairs).forEach(function(k){if(k.indexOf(g.id+':')===0)delete S.settledPairs[k];});
+    S.sheet=null;S.tab='expenses';render();}
+  function createGroup(){var f=S.grp;var mids=Object.keys(f.members).filter(function(k){return f.members[k];});
+    if(!f.name.trim()||mids.length<2)return;var id='grp'+Date.now();
+    S.groups.push({id:id,name:f.name.trim(),fill:f.color,members:mids,expenses:[]});S.sheet=null;S.screen='group';S.groupId=id;S.tab='expenses';render();}
+  function finishPay(){var g=group();var tid=S.settleTarget||topCreditor(g).id;var pw=pairwise(g);
+    var amount=Math.max(0,pw[tid]||0);
+    S.log[g.id]=(S.log[g.id]||[]).concat([{to:M[tid].name,amount:amount,method:S.settleMethod,date:'Just now'}]);
+    S.settledPairs[g.id+':'+tid]=true;S.sheet=null;S.tab='history';render();}
+
+  // ---- view helpers ----
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function avatar(m,size,opts){opts=opts||{};var s=size||40;var fs=Math.max(10,Math.round(s*0.3));
+    return '<div class="center sora" style="width:'+s+'px;height:'+s+'px;border-radius:50%;background:'+m.color+';font-weight:700;font-size:'+fs+'px;color:#16150f;'+(opts.ring?'outline:2px solid #16150f;outline-offset:2px;':'')+(opts.darkRing?'border:2px solid #16150f;':'')+(opts.overlap?'margin-left:-8px;':'')+(opts.shadow?'box-shadow:0 0 0 1px rgba(20,20,15,0.08);':'')+'">'+esc(m.initials)+'</div>';}
+  function act(a){return 'data-act="'+a+'"';}
+  function seg(active){return active?{bg:'#16150f',tx:'#fff',sh:'0 2px 8px rgba(20,20,15,0.2)'}:{bg:'transparent',tx:'#6f6d63',sh:'none'};}
+  function backBtn(a){return '<div '+act(a)+' class="center" style="width:42px;height:42px;border-radius:14px;background:#fff;border:1px solid '+C.line+';box-shadow:0 4px 12px rgba(20,20,15,0.05);cursor:pointer;"><svg width="9" height="15" viewBox="0 0 9 15"><path d="M7.5 1L1.5 7.5l6 6" stroke="#16150f" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';}
+
+  // ---- screens ----
+  function onboarding(){
+    return '<div class="scroll"><div style="min-height:100%;padding:14px 18px 26px;display:flex;flex-direction:column;animation:fade .4s;">'+
+      '<div style="position:relative;border-radius:30px;background:#16150f;overflow:hidden;padding:26px 22px 30px;flex:1;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 24px 50px rgba(20,20,15,0.22);">'+
+        '<div style="position:absolute;top:-60px;right:-50px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(194,242,63,0.28),transparent 68%);"></div>'+
+        '<div style="position:absolute;bottom:-40px;left:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(120,160,255,0.16),transparent 70%);"></div>'+
+        '<div style="position:relative;">'+
+          '<div class="between"><div class="row" style="align-items:center;gap:9px;">'+paxa(26,C.lime)+'<span class="sora" style="font-weight:700;font-size:22px;color:#fff;letter-spacing:-.02em;">paxa</span></div>'+
+          '<div class="row" style="align-items:center;gap:7px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:999px;padding:6px 12px;"><div style="width:7px;height:7px;border-radius:50%;background:'+C.lime+';"></div><span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);">UPI · Cards</span></div></div>'+
+          '<div class="sora" style="font-weight:800;font-size:40px;line-height:1.04;letter-spacing:-.03em;color:#fff;margin-top:26px;">Split the bill.<br>Keep the <span style="color:'+C.lime+';">vibe.</span></div>'+
+          '<div style="font-size:14.5px;color:rgba(255,255,255,0.62);font-weight:500;margin-top:14px;max-width:280px;">Add an expense, we do the math, everyone settles in two taps. Minus the awkward reminders.</div>'+
+        '</div>'+
+        '<div style="position:relative;margin-top:30px;border-radius:22px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);padding:18px;">'+
+          '<div style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);">Goa Trip · your balance</div>'+
+          '<div class="sora" style="font-weight:800;font-size:34px;color:#fff;margin-top:3px;letter-spacing:-.02em;">- ₹2,000</div>'+
+          '<div class="row" style="gap:0;margin-top:10px;"><div style="width:30px;height:30px;border-radius:50%;border:2px solid #16150f;background:'+C.pink+';"></div><div style="width:30px;height:30px;border-radius:50%;border:2px solid #16150f;background:'+C.cyan+';margin-left:-12px;"></div><div style="width:30px;height:30px;border-radius:50%;border:2px solid #16150f;background:'+C.lime+';margin-left:-12px;"></div><div style="width:30px;height:30px;border-radius:50%;border:2px solid #16150f;background:'+C.khaki+';margin-left:-12px;"></div></div>'+
+        '</div>'+
+      '</div>'+
+      '<button '+act('start')+' class="sora" style="width:100%;background:'+C.lime+';border-radius:20px;padding:18px;font-weight:700;font-size:17px;color:#16150f;margin-top:16px;box-shadow:0 10px 24px rgba(194,242,63,0.4);">Get Started</button>'+
+    '</div></div>';
+  }
+
+  function home(){
+    var totOwe=0,totOwed=0;S.groups.forEach(function(g){totOwe+=youOwe(g);totOwed+=owed(g);});
+    var net=totOwed-totOwe;var heroNet=(net>=0?'+':'- ')+fmt(Math.abs(net));var heroLbl=net>=0?'You’re up overall':'You owe overall';
+    var qa=function(a,bg,svg,label){return '<div '+act(a)+' style="flex:1;background:#fff;border:1px solid '+C.line+';border-radius:20px;padding:14px 6px;display:flex;flex-direction:column;align-items:center;gap:9px;box-shadow:0 6px 16px rgba(20,20,15,0.05);cursor:pointer;"><div class="center" style="width:42px;height:42px;border-radius:14px;background:'+bg+';">'+svg+'</div><span style="font-size:12px;font-weight:600;">'+label+'</span></div>';};
+    var groups=S.groups.map(function(g){
+      var nl='settled up',na='✓',nc=C.m2;
+      if(!settled(g)){var o=youOwe(g),od=owed(g);if(o>od){nl='you owe';na=fmt(o-od);nc=C.ink;}else{nl='owed to you';na='+'+fmt(od-o);nc=C.limeDark;}}
+      return '<div '+act('openGroup:'+g.id)+' class="card" style="display:flex;align-items:center;gap:14px;padding:13px 14px;cursor:pointer;">'+
+        '<div class="center sora" style="width:50px;height:50px;border-radius:16px;background:'+tintOf(g.fill)+';font-weight:700;font-size:19px;flex-shrink:0;">'+esc(g.name.charAt(0))+'</div>'+
+        '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:16px;">'+esc(g.name)+'</div><div style="font-size:12.5px;color:'+C.m1+';font-weight:500;margin-top:2px;">'+g.members.length+' people · '+g.expenses.length+' expenses</div></div>'+
+        '<div style="text-align:right;"><div class="sora" style="font-weight:700;font-size:18px;color:'+nc+';letter-spacing:-.01em;">'+na+'</div><div style="font-size:11px;font-weight:600;color:'+C.m2+';margin-top:1px;">'+nl+'</div></div></div>';
+    }).join('');
+    return '<div class="scroll"><div style="padding:6px 18px 130px;animation:rise .4s;">'+
+      '<div class="between" style="margin:6px 2px 18px;"><div><div style="font-size:13px;font-weight:500;color:'+C.m1+';">Good evening</div><div class="sora" style="font-weight:700;font-size:21px;letter-spacing:-.01em;">Riya Sharma</div></div>'+
+      '<div '+act('goProfile')+' style="position:relative;cursor:pointer;"><div class="center sora" style="width:44px;height:44px;border-radius:50%;background:'+S.userColor+';font-weight:700;font-size:14px;color:#16150f;box-shadow:0 4px 12px rgba(20,20,15,0.12);">Ri</div><div style="position:absolute;top:0;right:0;width:11px;height:11px;border-radius:50%;background:'+C.lime+';border:2px solid '+C.canvas+';"></div></div></div>'+
+      // hero balance card
+      '<div style="position:relative;overflow:hidden;border-radius:28px;background:#16150f;padding:22px 20px;box-shadow:0 20px 40px rgba(20,20,15,0.18);">'+
+        '<div style="position:absolute;top:-50px;right:-40px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(194,242,63,0.22),transparent 68%);"></div>'+
+        '<div class="between" style="position:relative;"><div class="row" style="align-items:center;gap:7px;">'+paxa(15,C.lime)+'<span style="font-size:12.5px;font-weight:500;color:rgba(255,255,255,0.55);">Net balance · all groups</span></div>'+
+        '<span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.1);border-radius:999px;padding:4px 10px;">'+S.groups.length+' groups</span></div>'+
+        '<div class="sora" style="position:relative;font-weight:800;font-size:42px;letter-spacing:-.03em;color:#fff;margin-top:8px;">'+heroNet+'</div>'+
+        '<div class="row" style="position:relative;align-items:center;gap:6px;background:rgba(194,242,63,0.16);border-radius:999px;padding:5px 11px;margin-top:8px;width:fit-content;"><div style="width:6px;height:6px;border-radius:50%;background:'+C.lime+';"></div><span style="font-size:12px;font-weight:600;color:'+C.lime+';">'+heroLbl+'</span></div>'+
+        '<div class="row" style="position:relative;gap:10px;margin-top:18px;">'+
+          '<div style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:16px;padding:12px 14px;"><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,0.5);">You owe</div><div class="sora" style="font-weight:700;font-size:18px;color:#fff;margin-top:2px;">'+fmt(totOwe)+'</div></div>'+
+          '<div style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09);border-radius:16px;padding:12px 14px;"><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,0.5);">You\'re owed</div><div class="sora" style="font-weight:700;font-size:18px;color:'+C.lime+';margin-top:2px;">+'+fmt(totOwed)+'</div></div>'+
+        '</div>'+
+      '</div>'+
+      // quick actions
+      '<div class="row" style="gap:10px;margin:18px 0 24px;">'+
+        qa('qaAdd','#edf7cf','<svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="#3f6b00" stroke-width="2.2" stroke-linecap="round"/></svg>','Add')+
+        qa('qaSettle','#e3eef5','<svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 7h11l-3-3M15 13H4l3 3" stroke="#1f5b86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>','Settle')+
+        qa('qaRequest','#f6e6f3','<svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 16h12" stroke="#8a2178" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>','Request')+
+        qa('goActivity','#f0ecdd','<svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 11h3l2-5 3 9 2-6 1.5 2H17" stroke="#6b6630" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>','Activity')+
+      '</div>'+
+      '<div class="between" style="margin:0 2px 14px;"><span class="sora" style="font-weight:700;font-size:18px;letter-spacing:-.01em;">Your groups</span><span '+act('openCreate')+' style="font-size:13px;font-weight:600;color:'+C.limeDark+';cursor:pointer;">+ New</span></div>'+
+      '<div style="display:flex;flex-direction:column;gap:11px;">'+groups+'</div>'+
+    '</div></div>'+tabBar();
+  }
+
+  function groupDetail(){
+    var g=group();var pw=pairwise(g);var st=settled(g);var oT=youOwe(g),odT=owed(g);
+    var hl=st?'This group is settled':(oT>odT?'You owe in this group':'You’re owed in this group');
+    var ha=st?'₹0':((oT>odT?'- ':'+')+fmt(Math.abs(oT-odT)));
+    var avs=g.members.slice(0,4).map(function(id){return '<div class="center" style="width:32px;height:32px;border-radius:50%;border:2px solid #16150f;background:'+M[id].color+';font-size:10px;font-weight:700;color:#16150f;margin-left:-8px;">'+esc(M[id].initials)+'</div>';}).join('');
+    function tabBtn(k,l){var s=seg(S.tab===k);return '<div '+act('tab:'+k)+' style="flex:1;text-align:center;border-radius:12px;padding:9px;font-weight:600;font-size:13px;cursor:pointer;background:'+s.bg+';color:'+s.tx+';box-shadow:'+s.sh+';">'+l+'</div>';}
+    var body='';
+    if(S.tab==='balances'){
+      if(st){body='<div style="text-align:center;padding:46px 20px;"><div class="center" style="width:74px;height:74px;border-radius:50%;background:#edf7cf;margin:0 auto;"><svg width="32" height="32" viewBox="0 0 32 32"><path d="M8 16.5l5.5 5.5L24 10" stroke="#3f6b00" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="sora" style="font-weight:700;font-size:20px;margin-top:16px;">All squared up</div><div style="font-size:14px;color:'+C.m1+';font-weight:500;margin-top:4px;">No one owes anyone here.</div></div>';}
+      else{var owe='',ow='';
+        Object.keys(pw).forEach(function(id){var v=pw[id],m=M[id];
+          if(v>1&&!S.settledPairs[g.id+':'+id]){owe+='<div style="border-radius:24px;background:#16150f;padding:18px;box-shadow:0 14px 30px rgba(20,20,15,0.16);">'+
+            '<div class="between"><div class="row" style="align-items:center;gap:11px;"><div class="center" style="width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:'+m.color+';font-size:13px;font-weight:700;color:#16150f;">'+esc(m.initials)+'</div><div><div style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.55);">You owe</div><div style="font-weight:600;font-size:16px;color:#fff;">'+esc(m.name)+'</div></div></div>'+
+            '<div class="sora" style="font-weight:800;font-size:26px;color:#fff;letter-spacing:-.02em;">'+fmt(v)+'</div></div>'+
+            '<button '+act('settle:'+id)+' class="sora" style="width:100%;background:'+C.lime+';border-radius:15px;padding:14px;font-weight:700;font-size:15px;color:#16150f;margin-top:16px;">Settle up</button></div>';}
+          else if(v<-1){ow+='<div class="card" style="border-radius:24px;padding:18px;"><div class="between"><div class="row" style="align-items:center;gap:11px;">'+avatar(m,42,{shadow:true})+'<div><div style="font-size:12px;font-weight:500;color:'+C.m2+';">Owes you</div><div style="font-weight:600;font-size:16px;">'+esc(m.name)+'</div></div></div><div class="row" style="align-items:center;gap:12px;"><div class="sora" style="font-weight:800;font-size:22px;color:'+C.limeDark+';letter-spacing:-.02em;">+'+fmt(-v)+'</div><button '+act('remind:'+id)+' style="background:'+C.canvas+';border:1px solid rgba(20,20,15,0.07);border-radius:12px;padding:9px 13px;font-weight:600;font-size:13px;color:#16150f;">'+(S.reminded[g.id+':'+id]?'Sent ✓':'Remind')+'</button></div></div></div>';}
+        });
+        body='<div style="display:flex;flex-direction:column;gap:12px;">'+owe+ow+'</div>';}
+    } else if(S.tab==='expenses'){
+      body='<div style="display:flex;flex-direction:column;gap:10px;">'+g.expenses.map(function(e){
+        var sh=e.involved.indexOf('you')>-1?e.amount/e.involved.length:0;var payer=M[e.paidBy];
+        var meta=(e.paidBy==='you'?'You paid':payer.name+' paid')+' · '+e.date;
+        var stext=e.paidBy==='you'?'you lent '+fmt(e.amount-sh):'you owe '+fmt(sh);
+        var sc=e.paidBy==='you'?C.limeDark:C.m1;
+        return '<div '+act('openBill:'+e.id)+' class="card" style="display:flex;align-items:center;gap:13px;border-radius:18px;padding:13px 14px;cursor:pointer;box-shadow:0 5px 14px rgba(20,20,15,0.04);"><div class="center sora" style="width:44px;height:44px;border-radius:14px;background:'+(CATTINT[e.cat]||'#f0ecdd')+';font-size:11px;font-weight:700;flex-shrink:0;">'+esc(e.cat)+'</div><div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:15px;">'+esc(e.title)+'</div><div style="font-size:12px;color:'+C.m1+';font-weight:500;margin-top:1px;">'+esc(meta)+'</div></div><div style="text-align:right;"><div class="sora" style="font-weight:700;font-size:17px;">'+fmt(e.amount)+'</div><div style="font-size:11px;font-weight:600;color:'+sc+';margin-top:1px;">'+stext+'</div></div></div>';
+      }).join('')+'</div>';
+    } else {
+      var recs=S.log[g.id]||[];var items=recs.map(function(r){return {title:'You paid '+r.to,meta:r.method.toUpperCase()+' · '+r.date,amount:fmt(r.amount)};});
+      if(g.settledBase&&!recs.length)items.push({title:'Sushi night squared up',meta:'UPI · Last Fri',amount:fmt(3600)});
+      body=items.length?'<div style="display:flex;flex-direction:column;gap:10px;">'+items.map(function(h){return '<div class="card" style="display:flex;align-items:center;gap:13px;border-radius:18px;padding:13px 14px;box-shadow:0 5px 14px rgba(20,20,15,0.04);"><div class="center" style="width:42px;height:42px;border-radius:13px;background:#edf7cf;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 9.5l3.2 3.2L14 6" stroke="#3f6b00" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:15px;">'+esc(h.title)+'</div><div style="font-size:12px;color:'+C.m1+';font-weight:500;margin-top:1px;">'+esc(h.meta)+'</div></div><div style="text-align:right;"><div class="sora" style="font-weight:700;font-size:16px;">'+h.amount+'</div><div style="font-size:10px;font-weight:700;letter-spacing:.04em;color:'+C.limeDark+';">SETTLED</div></div></div>';}).join('')+'</div>'
+        :'<div style="text-align:center;padding:40px 10px;color:'+C.m2+';font-size:14px;font-weight:500;">Nothing settled yet.</div>';
+    }
+    return '<div class="scroll"><div style="padding:6px 18px 130px;animation:rise .4s;">'+
+      '<div class="between" style="margin:4px 0 18px;">'+backBtn('goHome')+'<span class="sora" style="font-weight:600;font-size:16px;">'+esc(g.name)+'</span><div class="center" style="width:42px;height:42px;border-radius:14px;background:#fff;border:1px solid '+C.line+';box-shadow:0 4px 12px rgba(20,20,15,0.05);"><svg width="18" height="6" viewBox="0 0 18 6"><circle cx="3" cy="3" r="2" fill="#16150f"/><circle cx="9" cy="3" r="2" fill="#16150f"/><circle cx="15" cy="3" r="2" fill="#16150f"/></svg></div></div>'+
+      '<div style="position:relative;overflow:hidden;border-radius:26px;background:#16150f;padding:20px;box-shadow:0 18px 36px rgba(20,20,15,0.16);"><div style="position:absolute;top:-50px;right:-40px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(194,242,63,0.2),transparent 68%);"></div><div style="position:relative;font-size:12.5px;font-weight:500;color:rgba(255,255,255,0.55);">'+hl+'</div><div class="sora" style="position:relative;font-weight:800;font-size:40px;letter-spacing:-.03em;color:#fff;margin-top:4px;">'+ha+'</div><div class="row" style="position:relative;margin-top:14px;padding-left:8px;">'+avs+'</div></div>'+
+      '<div class="row" style="gap:4px;background:#e7e4db;border-radius:16px;padding:4px;margin:18px 0;">'+tabBtn('balances','Balances')+tabBtn('expenses','Expenses')+tabBtn('history','History')+'</div>'+
+      body+
+    '</div></div>'+tabBar();
+  }
+
+  function bill(){
+    var g=group();var e=g.expenses.find(function(x){return x.id===S.billId;})||g.expenses[0];
+    var sh=e.amount/e.involved.length;var payer=M[e.paidBy];
+    var rows=e.involved.map(function(id){var m=M[id];var role=id===e.paidBy?'paid the bill':(id==='you'?'you owe this':'owes '+(e.paidBy==='you'?'you':payer.name));
+      return '<div class="card" style="display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;box-shadow:0 4px 12px rgba(20,20,15,0.04);">'+avatar(m,38,{shadow:true})+'<div style="flex:1;"><div style="font-weight:600;font-size:15px;">'+esc(m.name)+'</div><div style="font-size:11.5px;font-weight:500;color:'+C.m1+';">'+role+'</div></div><div class="sora" style="font-weight:700;font-size:18px;">'+fmt(sh)+'</div></div>';}).join('');
+    return '<div class="scroll"><div style="padding:6px 18px 40px;animation:rise .4s;">'+
+      '<div class="row" '+act('backGroup')+' style="align-items:center;gap:10px;margin:4px 0 18px;cursor:pointer;">'+backBtn('backGroup')+'<span class="sora" style="font-weight:600;font-size:16px;">Expense</span></div>'+
+      '<div style="position:relative;overflow:hidden;border-radius:26px;background:'+(CATTINT[e.cat]||'#f0ecdd')+';padding:22px 20px;border:1px solid rgba(20,20,15,0.05);"><div class="row" style="align-items:center;gap:8px;"><span style="background:#fff;border-radius:999px;padding:4px 11px;font-size:11px;font-weight:600;">'+esc(e.cat)+'</span><span style="font-size:12px;font-weight:500;color:'+C.m1+';">'+e.date+'</span></div><div class="sora" style="font-weight:700;font-size:23px;margin-top:14px;letter-spacing:-.01em;">'+esc(e.title)+'</div><div class="sora" style="font-weight:800;font-size:46px;margin-top:4px;letter-spacing:-.03em;">'+fmt(e.amount)+'</div><div style="font-size:13px;font-weight:500;color:'+C.m3+';margin-top:8px;">Paid by '+(e.paidBy==='you'?'you':payer.name)+' · split '+e.involved.length+' ways</div></div>'+
+      '<div class="between" style="margin:24px 2px 12px;"><span class="sora" style="font-weight:700;font-size:17px;">Who owes what</span><span style="font-size:12px;font-weight:600;color:'+C.m2+';">auto-calculated</span></div>'+
+      '<div style="display:flex;flex-direction:column;gap:9px;">'+rows+'</div>'+
+    '</div></div>';
+  }
+
+  function activity(){
+    var items=[];S.groups.forEach(function(g){
+      g.expenses.slice(0,2).forEach(function(e){var p=M[e.paidBy];items.push({settle:false,title:e.title,sub:g.name+' · '+(e.paidBy==='you'?'you paid':p.name+' paid'),amount:fmt(e.amount),ac:C.ink,date:e.date,tint:CATTINT[e.cat]||'#f0ecdd'});});
+      (S.log[g.id]||[]).forEach(function(r){items.push({settle:true,title:'You paid '+r.to,sub:g.name+' · via '+r.method.toUpperCase(),amount:fmt(r.amount),ac:C.limeDark,date:r.date,tint:'#edf7cf'});});
+    });
+    var rows=items.map(function(a){
+      var icon=a.settle?'<svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 9.5l3.2 3.2L14 6" stroke="#3f6b00" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':'<svg width="18" height="18" viewBox="0 0 18 18"><rect x="3.5" y="2.5" width="11" height="13" rx="2" stroke="#16150f" stroke-width="1.6" fill="none"/><path d="M6 6h6M6 9h6M6 12h4" stroke="#16150f" stroke-width="1.4" stroke-linecap="round"/></svg>';
+      return '<div class="card" style="display:flex;align-items:center;gap:13px;border-radius:18px;padding:13px 14px;box-shadow:0 5px 14px rgba(20,20,15,0.04);"><div class="center" style="width:42px;height:42px;border-radius:13px;background:'+a.tint+';flex-shrink:0;">'+icon+'</div><div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:15px;">'+esc(a.title)+'</div><div style="font-size:12px;color:'+C.m1+';font-weight:500;margin-top:1px;">'+esc(a.sub)+'</div></div><div style="text-align:right;"><div class="sora" style="font-weight:700;font-size:16px;color:'+a.ac+';">'+a.amount+'</div><div style="font-size:11px;font-weight:500;color:'+C.m2+';margin-top:1px;">'+a.date+'</div></div></div>';
+    }).join('');
+    var ins=insights();
+    var bars=ins.trendBars.map(function(b){var col=b.last?C.lime:'rgba(255,255,255,0.4)';return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:8px;"><div style="font-size:9.5px;font-weight:700;color:'+col+';height:11px;">'+b.amount+'</div><div style="width:100%;height:'+b.h+'%;background:'+(b.last?C.lime:'rgba(255,255,255,0.16)')+';border-radius:7px 7px 4px 4px;"></div><div style="font-size:10.5px;font-weight:600;color:'+col+';">'+b.label+'</div></div>';}).join('');
+    var cats=ins.categories.map(function(c){return '<div><div class="between" style="margin-bottom:7px;"><div class="row" style="align-items:center;gap:8px;"><div style="width:11px;height:11px;border-radius:4px;background:'+c.color+';"></div><span style="font-size:14px;font-weight:600;">'+esc(c.name)+'</span></div><div class="row" style="align-items:baseline;gap:7px;"><span class="sora" style="font-weight:700;font-size:15px;">'+c.amount+'</span><span style="font-size:11px;font-weight:600;color:'+C.m2+';">'+c.pct+'</span></div></div><div style="height:9px;border-radius:5px;background:#f0eee7;overflow:hidden;"><div style="height:100%;width:'+c.barW+'%;background:'+c.color+';border-radius:5px;"></div></div></div>';}).join('');
+    return '<div class="scroll"><div style="padding:6px 18px 130px;animation:rise .4s;"><div class="sora" style="font-weight:700;font-size:24px;margin:8px 2px 18px;letter-spacing:-.02em;">Activity</div>'+
+      '<div style="position:relative;overflow:hidden;border-radius:26px;background:#16150f;padding:20px;box-shadow:0 18px 36px rgba(20,20,15,0.16);margin-bottom:14px;"><div style="position:absolute;top:-50px;right:-40px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(194,242,63,0.18),transparent 68%);"></div>'+
+        '<div class="between" style="position:relative;align-items:flex-end;"><div><div style="font-size:12.5px;font-weight:500;color:rgba(255,255,255,0.55);">You spent · last 6 months</div><div class="sora" style="font-weight:800;font-size:38px;letter-spacing:-.03em;color:#fff;margin-top:3px;">'+ins.total+'</div></div><div class="row" style="align-items:center;gap:6px;background:rgba(194,242,63,0.16);border-radius:999px;padding:5px 11px;"><span style="font-size:11.5px;font-weight:600;color:'+C.lime+';">↗ trending up</span></div></div>'+
+        '<div class="row" style="position:relative;align-items:flex-end;gap:10px;height:96px;margin-top:20px;">'+bars+'</div>'+
+      '</div>'+
+      '<div class="card" style="border-radius:24px;padding:18px;margin-bottom:22px;box-shadow:0 6px 16px rgba(20,20,15,0.05);"><div class="between" style="margin-bottom:16px;"><span class="sora" style="font-weight:700;font-size:16px;">By category</span><span style="font-size:12px;font-weight:600;color:'+C.m2+';">'+ins.topCatName+' · '+ins.topCatPct+'</span></div><div style="display:flex;flex-direction:column;gap:14px;">'+cats+'</div></div>'+
+      '<div class="sora" style="font-weight:700;font-size:16px;margin:0 2px 12px;">Recent</div>'+
+      '<div style="display:flex;flex-direction:column;gap:10px;">'+rows+'</div></div></div>'+tabBar();
+  }
+
+  function profile(){
+    var sc=[C.pink,C.cyan,C.khaki].map(function(c){return '<div '+act('userColor:'+c)+' class="center" style="flex:1;height:54px;border-radius:16px;background:'+c+';cursor:pointer;'+(S.userColor===c?'outline:2px solid #16150f;outline-offset:3px;':'')+'box-shadow:0 6px 14px rgba(20,20,15,0.08);">'+(S.userColor===c?'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 10.5l3.5 3.5L15 6" stroke="#16150f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</div>';}).join('');
+    var settings=[['💳','Payment methods','riya@okhdfc','#e3eef5'],['🔔','Notifications','On','#f6e6f3'],['🔒','Privacy & security','','#edf7cf'],['💬','Help & support','','#f0ecdd']];
+    var rows=settings.map(function(s,i){return '<div class="between" style="gap:13px;padding:15px 16px;'+(i<settings.length-1?'border-bottom:1px solid '+C.line+';':'')+'"><div class="center" style="width:34px;height:34px;border-radius:11px;background:'+s[3]+';font-size:14px;">'+s[0]+'</div><span style="flex:1;font-weight:600;font-size:15px;">'+s[1]+'</span><span style="font-size:13px;font-weight:500;color:'+C.m2+';">'+s[2]+'</span><svg width="7" height="12" viewBox="0 0 7 12"><path d="M1 1l5 5-5 5" stroke="#c7c5ba" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';}).join('');
+    return '<div class="scroll"><div style="padding:6px 18px 130px;animation:rise .4s;">'+
+      '<div class="row" '+act('goHome')+' style="align-items:center;gap:10px;margin:4px 0 18px;cursor:pointer;">'+backBtn('goHome')+'<span class="sora" style="font-weight:600;font-size:16px;">Profile</span></div>'+
+      '<div style="display:flex;flex-direction:column;align-items:center;padding:6px 0 22px;"><div class="center sora" style="width:90px;height:90px;border-radius:50%;background:'+S.userColor+';font-weight:700;font-size:32px;color:#16150f;box-shadow:0 12px 26px rgba(20,20,15,0.14);">Ri</div><div class="sora" style="font-weight:700;font-size:22px;margin-top:14px;">Riya Sharma</div><div style="font-size:13px;color:'+C.m1+';font-weight:500;margin-top:2px;">riya@okhdfc · @riyas</div></div>'+
+      '<div class="row" style="gap:11px;margin-bottom:18px;"><div style="flex:1;background:#16150f;border-radius:20px;padding:16px;box-shadow:0 12px 26px rgba(20,20,15,0.14);"><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,0.5);">Settled this month</div><div class="sora" style="font-weight:800;font-size:24px;color:#fff;margin-top:4px;">₹14,820</div></div><div class="card" style="flex:1;border-radius:20px;padding:16px;box-shadow:0 6px 16px rgba(20,20,15,0.05);"><div style="font-size:11.5px;font-weight:500;color:'+C.m2+';">Active groups</div><div class="sora" style="font-weight:800;font-size:24px;margin-top:4px;">'+S.groups.length+'</div></div></div>'+
+      '<div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:'+C.m2+';margin:6px 2px 10px;">YOUR STICKER COLOR</div><div class="row" style="gap:12px;margin-bottom:20px;">'+sc+'</div>'+
+      '<div class="card" style="border-radius:20px;overflow:hidden;box-shadow:0 6px 16px rgba(20,20,15,0.05);">'+rows+'</div>'+
+    '</div></div>'+tabBar();
+  }
+
+  // ---- bottom tab bar ----
+  function tabBar(){
+    if(['home','group','activity','profile'].indexOf(S.screen)<0)return '';
+    function pill(a,on,svg,label){return '<div '+act(a)+' class="row" style="align-items:center;gap:7px;padding:10px 14px;border-radius:17px;background:'+(on?C.lime:'transparent')+';cursor:pointer;">'+svg+(on?'<span style="font-size:13px;font-weight:600;color:#16150f;">'+label+'</span>':'')+'</div>';}
+    var hx=S.screen==='home'?'#16150f':C.m1, ax=S.screen==='activity'?'#16150f':C.m1, px=S.screen==='profile'?'#16150f':C.m1;
+    return '<div style="position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:38;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.86);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid '+C.line+';border-radius:24px;padding:7px;box-shadow:0 14px 34px rgba(20,20,15,0.16);">'+
+      pill('goHome',S.screen==='home','<svg width="19" height="19" viewBox="0 0 20 20"><path d="M3 9l7-6 7 6v8a1 1 0 01-1 1h-3v-5H7v5H4a1 1 0 01-1-1V9z" fill="none" stroke="'+hx+'" stroke-width="1.7" stroke-linejoin="round"/></svg>','Home')+
+      pill('goActivity',S.screen==='activity','<svg width="19" height="19" viewBox="0 0 20 20"><path d="M2 11h3l2-6 3.5 11 2.5-7 1.5 2H18" fill="none" stroke="'+ax+'" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>','Activity')+
+      '<div '+act('tabAdd')+' class="center" style="width:46px;height:46px;border-radius:50%;background:#16150f;cursor:pointer;box-shadow:0 8px 18px rgba(20,20,15,0.32);"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="#c2f23f" stroke-width="2.3" stroke-linecap="round"/></svg></div>'+
+      pill('goProfile',S.screen==='profile','<svg width="19" height="19" viewBox="0 0 20 20"><circle cx="10" cy="6.5" r="3.2" fill="none" stroke="'+px+'" stroke-width="1.7"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" fill="none" stroke="'+px+'" stroke-width="1.7" stroke-linecap="round"/></svg>','Profile')+
+    '</div>';
+  }
+
+  // ---- sheets ----
+  function backdrop(){return '<div '+act('closeSheet')+' style="position:absolute;inset:0;z-index:50;background:rgba(12,12,10,0.45);backdrop-filter:blur(2px);animation:fade .25s;"></div>';}
+
+  function sheetAdd(){
+    var e=S.exp,g=group();var ids=invIds(e),sp=splits(e);
+    var editable=e.mode==='exact'||e.mode==='percent'||e.mode==='shares';var unit=e.mode==='percent'?'%':(e.mode==='shares'?'×':'₹');
+    var payer=g.members.map(function(id){var m=M[id];var on=e.paidBy===id;return '<div '+act('payer:'+id)+' style="display:flex;align-items:center;gap:8px;border-radius:14px;padding:8px 13px 8px 8px;cursor:pointer;white-space:nowrap;background:'+(on?'#16150f':'#fff')+';border:1px solid '+(on?'#16150f':C.line)+';"><div class="center" style="width:28px;height:28px;border-radius:50%;background:'+m.color+';font-size:10px;font-weight:700;color:#16150f;">'+esc(m.initials)+'</div><span style="font-weight:600;font-size:13px;color:'+(on?'#fff':'#16150f')+';">'+esc(m.name)+'</span></div>';}).join('');
+    var modes=[['equal','Equal'],['exact','Exact'],['percent','%'],['shares','Shares']].map(function(x){var s=seg(e.mode===x[0]);return '<div '+act('mode:'+x[0])+' style="flex:1;text-align:center;border-radius:11px;padding:9px 4px;font-weight:600;font-size:12.5px;cursor:pointer;background:'+s.bg+';color:'+s.tx+';box-shadow:'+s.sh+';">'+x[1]+'</div>';}).join('');
+    var rows=g.members.map(function(id){var m=M[id];var on=!!e.involved[id];
+      var right=editable&&on?'<input data-input="val:'+id+'" value="'+(e.vals[id]||'')+'" inputmode="numeric" class="sora" style="width:76px;background:'+C.canvas+';border:1px solid rgba(20,20,15,0.08);border-radius:10px;padding:8px 10px;font-weight:700;font-size:14px;text-align:right;outline:none;"/><span style="font-size:12px;font-weight:700;color:'+C.m2+';width:12px;">'+unit+'</span>'
+        :'<div class="sora" id="share-'+id+'" style="font-weight:700;font-size:16px;">'+(on?fmt(sp[id]||0):'—')+'</div>';
+      return '<div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid '+C.line+';border-radius:15px;padding:9px 12px;opacity:'+(on?1:.42)+';"><div '+act('toggleInv:'+id)+' class="center" style="width:34px;height:34px;border-radius:50%;background:'+m.color+';font-size:11px;font-weight:700;color:#16150f;cursor:pointer;flex-shrink:0;'+(on?'outline:2px solid #16150f;outline-offset:2px;':'')+'">'+esc(m.initials)+'</div><div style="flex:1;font-weight:600;font-size:14px;">'+esc(m.name)+'</div>'+right+'</div>';}).join('');
+    var v=valid(e);
+    return backdrop()+'<div class="scroll" style="position:absolute;left:0;right:0;bottom:0;z-index:55;max-height:92%;background:'+C.canvas+';border-radius:36px 36px 0 0;animation:up .36s cubic-bezier(.2,.85,.25,1);"><div style="padding:14px 20px 28px;">'+
+      '<div style="width:42px;height:5px;border-radius:3px;background:#cfccc2;margin:0 auto 18px;"></div>'+
+      '<div class="sora" style="font-weight:700;font-size:23px;letter-spacing:-.01em;">Add an expense</div><div style="font-size:13px;color:'+C.m1+';font-weight:500;margin-bottom:18px;">into '+esc(g.name)+'</div>'+
+      '<input data-input="title" value="'+esc(e.title)+'" placeholder="What was it for?" style="width:100%;background:#fff;border:1px solid rgba(20,20,15,0.07);border-radius:16px;padding:15px;font-size:16px;font-weight:500;color:#16150f;margin-bottom:11px;outline:none;box-shadow:0 3px 10px rgba(20,20,15,0.03);"/>'+
+      '<div class="center" style="gap:4px;background:#16150f;border-radius:20px;padding:20px;margin-bottom:18px;"><span class="sora" style="font-weight:700;font-size:30px;color:rgba(255,255,255,0.5);">₹</span><input data-input="amount" value="'+esc(e.amount)+'" inputmode="numeric" placeholder="0" class="sora" style="border:none;padding:0;font-weight:800;font-size:42px;color:#fff;background:transparent;outline:none;width:auto;max-width:200px;text-align:center;letter-spacing:-.02em;"/></div>'+
+      '<div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:'+C.m2+';margin:4px 2px 9px;">PAID BY</div><div class="scroll row" style="gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:18px;">'+payer+'</div>'+
+      '<div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:'+C.m2+';margin:4px 2px 9px;">SPLIT</div><div class="row" style="gap:4px;background:#e7e4db;border-radius:14px;padding:4px;margin-bottom:14px;">'+modes+'</div>'+
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px;">'+rows+'</div>'+
+      '<div class="between" style="padding:8px 4px 16px;"><span id="add-status" style="font-size:13px;font-weight:500;color:'+C.m1+';"></span><span id="add-remaining" class="sora" style="font-weight:700;font-size:15px;"></span></div>'+
+      '<button id="add-btn" '+act('addExpense')+' class="sora" style="width:100%;background:'+(v?C.lime:'#dfe7c4')+';border-radius:18px;padding:17px;font-weight:700;font-size:16px;color:#16150f;opacity:'+(v?1:.6)+';box-shadow:0 10px 22px rgba(194,242,63,0.32);">Add expense</button>'+
+    '</div></div>';
+  }
+  function updateAdd(){var e=S.exp;if(!e)return;var amt=parseFloat(e.amount)||0,ids=invIds(e),sp=splits(e);
+    ids.forEach(function(id){var el=document.getElementById('share-'+id);if(el)el.textContent=fmt(sp[id]||0);});
+    var status='',rem='',col=C.m1;
+    if(e.mode==='equal'){status=ids.length+' people · equal';rem=ids.length?fmt(amt/ids.length)+' each':'';}
+    else if(e.mode==='percent'){var p=0;ids.forEach(function(id){p+=parseFloat(e.vals[id])||0;});status=p.toFixed(0)+'% allocated';var l=100-p;rem=Math.abs(l)<.5?'balanced':(l>0?l+'% left':(-l)+'% over');col=Math.abs(l)<.5?C.limeDark:C.m1;}
+    else if(e.mode==='shares'){var t=0;ids.forEach(function(id){t+=parseFloat(e.vals[id])||0;});status=t+' shares total';rem='auto-split';col=C.limeDark;}
+    else{var s=0;ids.forEach(function(id){s+=sp[id];});var lf=amt-s;status=fmt(s)+' of '+fmt(amt);rem=Math.abs(lf)<1?'balanced':fmt(Math.abs(lf))+(lf>0?' left':' over');col=Math.abs(lf)<1?C.limeDark:'#b00050';}
+    var st=document.getElementById('add-status'),rm=document.getElementById('add-remaining'),bt=document.getElementById('add-btn');
+    if(st)st.textContent=status;if(rm){rm.textContent=rem;rm.style.color=col;}
+    if(bt){var v=valid(e);bt.style.background=v?C.lime:'#dfe7c4';bt.style.opacity=v?1:.6;}}
+
+  function sheetCreate(){
+    var f=S.grp;var colors=[C.pink,C.cyan,C.lime].map(function(c){return '<div '+act('grpColor:'+c)+' class="center" style="flex:1;height:48px;border-radius:14px;background:'+c+';cursor:pointer;'+(f.color===c?'outline:2px solid #16150f;outline-offset:3px;':'')+'">'+(f.color===c?'<svg width="18" height="18" viewBox="0 0 20 20"><path d="M5 10.5l3.5 3.5L15 6" stroke="#16150f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</div>';}).join('');
+    var mem=Object.keys(M).map(function(id){var m=M[id];var on=!!f.members[id];var locked=id==='you';
+      return '<div '+act(locked?'noop':'member:'+id)+' style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid '+C.line+';border-radius:15px;padding:9px 12px;cursor:pointer;opacity:'+(on?1:.5)+';"><div class="center" style="width:34px;height:34px;border-radius:50%;background:'+m.color+';font-size:11px;font-weight:700;color:#16150f;">'+esc(m.initials)+'</div><div style="flex:1;font-weight:600;font-size:15px;">'+esc(m.name)+'</div><div class="center" style="width:24px;height:24px;border-radius:8px;background:'+(on?C.lime:C.canvas)+';border:1px solid '+(on?C.lime:'rgba(20,20,15,0.12)')+';">'+(on?'<svg width="13" height="13" viewBox="0 0 20 20"><path d="M5 10.5l3.5 3.5L15 6" stroke="#16150f" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</div></div>';}).join('');
+    var mids=Object.keys(f.members).filter(function(k){return f.members[k];});var ok=f.name.trim()&&mids.length>=2;
+    return backdrop()+'<div class="scroll" style="position:absolute;left:0;right:0;bottom:0;z-index:55;max-height:92%;background:'+C.canvas+';border-radius:36px 36px 0 0;animation:up .36s cubic-bezier(.2,.85,.25,1);"><div style="padding:14px 20px 28px;">'+
+      '<div style="width:42px;height:5px;border-radius:3px;background:#cfccc2;margin:0 auto 18px;"></div>'+
+      '<div class="sora" style="font-weight:700;font-size:23px;">New group</div><div style="font-size:13px;color:'+C.m1+';font-weight:500;margin-bottom:18px;">Trip, flat, dinner crew — whatever.</div>'+
+      '<input data-input="grpName" value="'+esc(f.name)+'" placeholder="Group name" style="width:100%;background:#fff;border:1px solid rgba(20,20,15,0.07);border-radius:16px;padding:15px;font-size:16px;font-weight:500;color:#16150f;margin-bottom:16px;outline:none;box-shadow:0 3px 10px rgba(20,20,15,0.03);"/>'+
+      '<div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:'+C.m2+';margin:4px 2px 9px;">ACCENT</div><div class="row" style="gap:10px;margin-bottom:18px;">'+colors+'</div>'+
+      '<div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:'+C.m2+';margin:4px 2px 9px;">MEMBERS</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">'+mem+'</div>'+
+      '<button id="create-btn" '+act('createGroup')+' class="sora" style="width:100%;background:'+(ok?C.lime:'#dfe7c4')+';border-radius:18px;padding:17px;font-weight:700;font-size:16px;color:#16150f;opacity:'+(ok?1:.6)+';box-shadow:0 10px 22px rgba(194,242,63,0.32);">Create group</button>'+
+    '</div></div>';
+  }
+
+  function sheetSettle(){
+    var g=group();var pw=pairwise(g);var tid=S.settleTarget||topCreditor(g).id;var amount=Math.max(0,pw[tid]||0);
+    function meth(k,t,s){var on=S.settleMethod===k;return '<div '+act('method:'+k)+' style="flex:1;border-radius:16px;padding:14px;cursor:pointer;background:'+(on?'rgba(194,242,63,0.12)':'rgba(255,255,255,0.05)')+';border:1px solid '+(on?C.lime:'rgba(255,255,255,0.1)')+';"><div class="between"><span class="sora" style="font-weight:700;font-size:15px;color:#fff;">'+t+'</span><div class="center" style="width:16px;height:16px;border-radius:50%;border:1.5px solid '+(on?C.lime:'rgba(255,255,255,0.3)')+';"><div style="width:8px;height:8px;border-radius:50%;background:'+(on?C.lime:'transparent')+';"></div></div></div><div style="font-size:11px;font-weight:500;color:rgba(255,255,255,0.5);margin-top:3px;">'+s+'</div></div>';}
+    return backdrop()+'<div style="position:absolute;left:0;right:0;bottom:0;z-index:55;background:#16150f;border-radius:38px 38px 0 0;padding:16px 22px calc(28px + env(safe-area-inset-bottom));animation:up .36s cubic-bezier(.2,.85,.25,1);">'+
+      '<div style="width:42px;height:5px;border-radius:3px;background:rgba(255,255,255,0.25);margin:0 auto 18px;"></div>'+
+      '<div class="between"><div class="sora" style="font-weight:700;font-size:21px;color:#fff;">Settle up</div><div class="row" style="align-items:center;gap:6px;background:rgba(194,242,63,0.14);border-radius:999px;padding:5px 11px;"><svg width="11" height="13" viewBox="0 0 11 13"><path d="M5.5 1L1 3v3.5C1 9 3 11 5.5 12 8 11 10 9 10 6.5V3L5.5 1z" fill="none" stroke="#c2f23f" stroke-width="1.3"/></svg><span style="font-size:11px;font-weight:600;color:'+C.lime+';">Secured</span></div></div>'+
+      '<div style="font-size:13px;color:rgba(255,255,255,0.55);font-weight:500;margin-top:3px;">Paying '+esc(M[tid].name)+' · '+esc(M[tid].vpa)+'</div>'+
+      '<div style="position:relative;overflow:hidden;border-radius:22px;background:linear-gradient(135deg,#2a2a22,#1a1a14);border:1px solid rgba(255,255,255,0.08);padding:20px;margin:18px 0;"><div style="position:absolute;top:-30px;right:-20px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(194,242,63,0.18),transparent 70%);"></div><div style="position:relative;font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);">You\'ll send</div><div class="sora" style="position:relative;font-weight:800;font-size:48px;color:#fff;letter-spacing:-.03em;margin-top:2px;">'+fmt(amount)+'</div>'+
+        '<div class="row" style="position:relative;align-items:center;gap:7px;margin-top:12px;background:rgba(255,255,255,0.05);border-radius:999px;padding:6px 12px;width:fit-content;"><div style="width:6px;height:6px;border-radius:50%;background:'+C.lime+';"></div><span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.7);">Direct UPI transfer · no fees</span></div></div>'+
+      '<div style="font-size:12px;font-weight:600;letter-spacing:.03em;color:rgba(255,255,255,0.45);margin:0 2px 9px;">PAY WITH</div><div class="row" style="gap:10px;margin-bottom:20px;">'+meth('upi','UPI','GPay · PhonePe · any app')+meth('card','Card','via your bank')+'</div>'+
+      '<button '+act('doPay')+' class="sora" style="width:100%;background:'+C.lime+';border-radius:18px;padding:18px;font-weight:700;font-size:17px;color:#16150f;box-shadow:0 12px 26px rgba(194,242,63,0.3);">Pay '+fmt(amount)+' now</button>'+
+    '</div>';
+  }
+
+  function sheetSuccess(){
+    var g=group();var pw=pairwise(g);var tid=S.settleTarget||topCreditor(g).id;var amount=Math.max(0,pw[tid]||0);
+    var conf=[[50,90,12,C.lime,0,1.5],[300,60,10,C.cyan,1,1.7],[300,120,14,C.pink,0,1.9],[140,80,9,C.khaki,1,1.6],[210,50,11,C.lime,0,1.8]].map(function(c,i){return '<div style="position:absolute;left:'+c[0]+'px;top:'+c[1]+'px;width:'+c[2]+'px;height:'+c[2]+'px;background:'+c[3]+';border-radius:'+(c[4]?'50%':'3px')+';animation:fall '+c[5]+'s ease-in '+(i*0.12)+'s infinite;"></div>';}).join('');
+    return '<div style="position:absolute;inset:0;z-index:60;background:#16150f;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;overflow:hidden;animation:fade .3s;">'+conf+
+      '<div class="center" style="width:96px;height:96px;border-radius:50%;background:'+C.lime+';animation:pop .5s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 0 0 12px rgba(194,242,63,0.12);"><svg width="44" height="44" viewBox="0 0 44 44"><path d="M11 22.5l7.5 7.5L33 14" stroke="#16150f" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'+
+      '<div class="sora" style="font-weight:700;font-size:26px;color:#fff;margin-top:24px;letter-spacing:-.01em;">Payment sent</div>'+
+      '<div class="sora" style="font-weight:800;font-size:40px;color:'+C.lime+';margin-top:8px;letter-spacing:-.02em;">'+fmt(amount)+'</div>'+
+      '<div style="font-size:14px;font-weight:500;color:rgba(255,255,255,0.6);margin-top:6px;text-align:center;">to '+esc(M[tid].name)+' · via '+(S.settleMethod==='upi'?'UPI':'Card')+'</div>'+
+      '<div style="font-size:12.5px;font-weight:500;color:rgba(255,255,255,0.4);margin-top:20px;text-align:center;">Receipt logged to history. No fees — paxa is free.</div>'+
+      '<button '+act('finishPay')+' class="sora" style="margin-top:28px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.16);border-radius:16px;padding:15px 44px;font-weight:600;font-size:16px;color:#fff;">Done</button>'+
+    '</div>';
+  }
+
+  // ---- render + events ----
+  function render(){
+    var el=document.getElementById('app');var h='';
+    if(S.screen==='onboarding')h=onboarding();
+    else if(S.screen==='home')h=home();
+    else if(S.screen==='group')h=groupDetail();
+    else if(S.screen==='bill')h=bill();
+    else if(S.screen==='activity')h=activity();
+    else if(S.screen==='profile')h=profile();
+    if(S.sheet==='addExpense')h+=sheetAdd();
+    else if(S.sheet==='createGroup')h+=sheetCreate();
+    else if(S.sheet==='settle')h+=sheetSettle();
+    else if(S.sheet==='success')h+=sheetSuccess();
+    el.innerHTML=h+(S.toast?toastHtml():'');
+    if(S.sheet==='addExpense')updateAdd();
+  }
+  function toastHtml(){return '<div style="position:absolute;left:50%;transform:translateX(-50%);bottom:92px;z-index:70;display:flex;align-items:center;gap:9px;background:#16150f;border-radius:999px;padding:11px 18px;box-shadow:0 14px 30px rgba(20,20,15,0.32);animation:rise .3s;white-space:nowrap;"><div style="width:7px;height:7px;border-radius:50%;background:'+C.lime+';"></div><span style="font-size:13px;font-weight:600;color:#fff;">'+esc(S.toast)+'</span></div>';}
+
+  document.getElementById('app').addEventListener('click',function(ev){
+    var t=ev.target;while(t&&t!==this&&!t.getAttribute('data-act'))t=t.parentNode;
+    if(!t||t===this)return;var a=t.getAttribute('data-act');if(!a||a==='noop')return;
+    var i=a.indexOf(':');var name=i<0?a:a.slice(0,i);var arg=i<0?null:a.slice(i+1);
+    switch(name){
+      case 'start': S.screen='home';S.sheet=null;render();break;
+      case 'goHome': S.screen='home';S.sheet=null;render();break;
+      case 'goActivity': S.screen='activity';S.sheet=null;render();break;
+      case 'goProfile': S.screen='profile';S.sheet=null;render();break;
+      case 'openGroup': S.groupId=arg;S.tab='balances';S.screen='group';render();break;
+      case 'openBill': S.billId=arg;S.screen='bill';render();break;
+      case 'backGroup': S.screen='group';render();break;
+      case 'tab': S.tab=arg;render();break;
+      case 'openCreate': openSheet('createGroup');break;
+      case 'qaAdd': S.groupId='goa';S.screen='group';S.tab='balances';openSheet('addExpense');break;
+      case 'qaSettle': S.groupId='goa';S.tab='balances';S.screen='group';openSheet('settle',topCreditor(group('goa')).id);break;
+      case 'qaRequest': flash('Payment requests sent via UPI');break;
+      case 'remind': S.reminded[S.groupId+':'+arg]=true;flash('Reminder sent to '+(M[arg]?M[arg].name:'them'));break;
+      case 'settle': openSheet('settle',arg);break;
+      case 'tabAdd': if(S.screen==='group')openSheet('addExpense');else openSheet('createGroup');break;
+      case 'closeSheet': S.sheet=null;render();break;
+      case 'payer': S.exp.paidBy=arg;render();break;
+      case 'mode': S.exp.mode=arg;render();break;
+      case 'toggleInv': S.exp.involved[arg]=!S.exp.involved[arg];render();break;
+      case 'addExpense': addExpense();break;
+      case 'grpColor': S.grp.color=arg;render();break;
+      case 'member': S.grp.members[arg]=!S.grp.members[arg];render();break;
+      case 'createGroup': createGroup();break;
+      case 'method': S.settleMethod=arg;render();break;
+      case 'doPay': {
+        if(S.settleMethod==='upi'){
+          var dg=group();var dpw=pairwise(dg);var dtid=S.settleTarget||topCreditor(dg).id;var damt=Math.max(0,dpw[dtid]||0);
+          // hand off to the user's UPI app (opens the chooser on a real phone)
+          try{window.location.href=upiUrl(M[dtid].vpa,M[dtid].name,damt,dg.name+' settle');}catch(e){}
+        }
+        S.sheet='success';render();break;
+      }
+      case 'finishPay': finishPay();break;
+      case 'userColor': S.userColor=arg;flash('Sticker color updated');break;
+    }
+  });
+  document.getElementById('app').addEventListener('input',function(ev){
+    var t=ev.target;var key=t.getAttribute('data-input');if(!key)return;
+    if(key==='title'){S.exp.title=t.value;updateAdd();}
+    else if(key==='amount'){var v=t.value.replace(/[^0-9.]/g,'');if(v!==t.value)t.value=v;S.exp.amount=v;updateAdd();}
+    else if(key.indexOf('val:')===0){S.exp.vals[key.slice(4)]=t.value;updateAdd();}
+    else if(key==='grpName'){S.grp.name=t.value;var b=document.getElementById('create-btn');if(b){var mids=Object.keys(S.grp.members).filter(function(k){return S.grp.members[k];});var ok=S.grp.name.trim()&&mids.length>=2;b.style.background=ok?C.lime:'#dfe7c4';b.style.opacity=ok?1:.6;}}
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

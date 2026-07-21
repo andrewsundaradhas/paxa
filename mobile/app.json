@@ -1,0 +1,9 @@
+{
+  "name": "paxa",
+  "displayName": "paxa",
+  "version": "1.0.0",
+  "bundleIdentifier": "com.paxa.app",
+  "android": {
+    "package": "com.paxa.app"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+.logic-build/
+.env
+.env.production
+.env.local
+android/app/build/
+android/.gradle/
+ios/Pods/
+ios/build/
+*.keystore
+android/keystore.properties
