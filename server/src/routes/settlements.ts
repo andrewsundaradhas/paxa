@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {and, eq, or} from 'drizzle-orm';
+import {and, eq} from 'drizzle-orm';
 import {z} from 'zod';
 import {initiateSettlementSchema, rupeesToPaise} from '@splitr/shared';
 import {db} from '../db/client';

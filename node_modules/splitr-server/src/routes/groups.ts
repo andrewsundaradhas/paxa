@@ -1,10 +1,10 @@
 import crypto from 'crypto';
 import {Router} from 'express';
-import {and, eq, inArray} from 'drizzle-orm';
+import {eq, inArray} from 'drizzle-orm';
 import {createGroupSchema} from '@splitr/shared';
 import {db} from '../db/client';
 import {groups, groupMembers, groupInvites, users} from '../db/schema';
-import {asyncHandler, notFound, badRequest, audit} from '../lib/http';
+import {asyncHandler, notFound, audit} from '../lib/http';
 import {requireAuth, requireGroupMember, type AuthedRequest} from '../middleware';
 import {getGroupBalances} from '../services/balance';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {colors, fonts, radius, softShadow, CATTINT} from '../theme';
+import {colors, fonts, softShadow, CATTINT} from '../theme';
 import {Avatar} from '../components/Avatar';
 import {BackButton} from '../components/common';
 import {LimeButton, GhostButton} from '../components/Buttons';

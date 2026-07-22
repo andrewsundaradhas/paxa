@@ -1,8 +1,14 @@
 import {apiListGroups, apiGetGroup, apiListExpenses, apiListSettlements} from '../api/endpoints';
 import type {ApiMember, ApiExpense, ApiSettlement} from '../api/types';
 import {useSession} from '../auth/session';
-import type {Group, Expense, SettlementRecord} from '../store/useAppStore';
-import {useAppStore, MEMBERS, type Member} from '../store/useAppStore';
+import {
+  useAppStore,
+  MEMBERS,
+  type Member,
+  type Group,
+  type Expense,
+  type SettlementRecord,
+} from '../store/useAppStore';
 import {colors} from '../theme';
 
 const PALETTE = [colors.pink, colors.cyan, colors.lime, colors.khaki, '#8aa0ff', '#f5b54a'];
@@ -91,13 +97,20 @@ export async function hydrateFromApi(): Promise<void> {
   let settledPairs: Record<string, boolean> = {};
   let log: Record<string, SettlementRecord[]> = {};
 
-  for (const summary of summaries) {
-    const [detail, expenses, settlements] = await Promise.all([
-      apiGetGroup(summary.id),
-      apiListExpenses(summary.id),
-      apiListSettlements(summary.id),
-    ]);
+  // Fetch every group's detail/expenses/settlements concurrently, then process
+  // the results in their original order (avoids awaiting inside the loop).
+  const hydrated = await Promise.all(
+    summaries.map(async summary => {
+      const [detail, expenses, settlements] = await Promise.all([
+        apiGetGroup(summary.id),
+        apiListExpenses(summary.id),
+        apiListSettlements(summary.id),
+      ]);
+      return {summary, detail, expenses, settlements};
+    }),
+  );
 
+  for (const {summary, detail, expenses, settlements} of hydrated) {
     detail.members.forEach((m, idx) => {
       const mapped = mapMember(m, user.id, idx);
       membersMap[mapped.id] = mapped;
