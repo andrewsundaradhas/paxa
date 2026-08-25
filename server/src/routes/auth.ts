@@ -55,6 +55,87 @@ authRouter.post(
   }),
 );
 
+/**
+ * Find-or-create a user from a verified social identity, linking to an existing
+ * account by matching provider-subject first, then verified email. Runs in a
+ * transaction so two concurrent first-time sign-ins can't create duplicates.
+ */
+async function upsertOAuthUser(identity: OAuthIdentity): Promise<UserRow> {
+  const subCol = identity.provider === 'google' ? users.googleSub : users.appleSub;
+  return db.transaction(async tx => {
+    // 1) Already linked by provider subject.
+    const [bySub] = await tx.select().from(users).where(eq(subCol, identity.subject)).limit(1);
+    if (bySub) {
+      return bySub;
+    }
+    // 2) Link to an existing account with the same (verified) email.
+    if (identity.email) {
+      const [byEmail] = await tx.select().from(users).where(eq(users.email, identity.email)).limit(1);
+      if (byEmail) {
+        const [linked] = await tx
+          .update(users)
+          .set({
+            googleSub: identity.provider === 'google' ? identity.subject : byEmail.googleSub,
+            appleSub: identity.provider === 'apple' ? identity.subject : byEmail.appleSub,
+            avatarUrl: byEmail.avatarUrl ?? identity.avatarUrl,
+            emailVerified: byEmail.emailVerified || identity.emailVerified,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, byEmail.id))
+          .returning();
+        return linked;
+      }
+    }
+    // 3) Brand-new social account.
+    const email = identity.email ?? `${identity.provider}_${identity.subject}@users.paxa.app`;
+    const [created] = await tx
+      .insert(users)
+      .values({
+        email,
+        passwordHash: null,
+        displayName: identity.name?.trim() || email.split('@')[0],
+        emailVerified: identity.emailVerified,
+        authProvider: identity.provider,
+        googleSub: identity.provider === 'google' ? identity.subject : null,
+        appleSub: identity.provider === 'apple' ? identity.subject : null,
+        avatarUrl: identity.avatarUrl,
+      })
+      .returning();
+    return created;
+  });
+}
+
+/** Issue tokens for a resolved user and shape the auth response. */
+async function issueSession(user: UserRow, deviceId: string | undefined, res: import('express').Response) {
+  const accessToken = signAccessToken({sub: user.id, email: user.email});
+  const refreshToken = await issueRefreshToken(user.id, deviceId);
+  res.json({accessToken, refreshToken, user: publicUser(user)});
+}
+
+/** POST /auth/google → verify a Google ID token, sign in / link / create. */
+authRouter.post(
+  '/google',
+  asyncHandler(async (req, res) => {
+    const {idToken, deviceId} = googleAuthSchema.parse(req.body);
+    const identity = await verifyGoogle(idToken);
+    const user = await upsertOAuthUser(identity);
+    await audit(user.id, 'oauth_login', 'user', user.id, {provider: 'google'});
+    await issueSession(user, deviceId, res);
+  }),
+);
+
+/** POST /auth/apple → verify an Apple identity token, sign in / link / create. */
+authRouter.post(
+  '/apple',
+  asyncHandler(async (req, res) => {
+    const {identityToken, fullName, deviceId} = appleAuthSchema.parse(req.body);
+    const identity = await verifyApple(identityToken, fullName);
+    const user = await upsertOAuthUser(identity);
+    await audit(user.id, 'oauth_login', 'user', user.id, {provider: 'apple'});
+    await issueSession(user, deviceId, res);
+  }),
+);
+
 /** POST /auth/refresh → rotate refresh token, issue a new access token. */
 authRouter.post(
   '/refresh',
