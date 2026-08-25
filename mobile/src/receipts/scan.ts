@@ -13,9 +13,20 @@
 export class ScanUnavailable extends Error {}
 
 /* eslint-disable @typescript-eslint/no-var-requires */
-function tryRequire(name: string): any | null {
+// Literal requires (wrapped in try/catch) so Metro treats them as OPTIONAL
+// dependencies — the bundle builds with or without the native modules installed
+// (see metro.config.js → resolver.allowOptionalDependencies).
+function requireImagePicker(): any | null {
   try {
-    return require(name);
+    return require('react-native-image-picker');
+  } catch {
+    return null;
+  }
+}
+
+function requireTextRecognition(): any | null {
+  try {
+    return require('@react-native-ml-kit/text-recognition');
   } catch {
     return null;
   }
@@ -23,11 +34,11 @@ function tryRequire(name: string): any | null {
 
 /** True when both camera/picker and OCR native modules are present. */
 export function scanSupported(): boolean {
-  return Boolean(tryRequire('react-native-image-picker') && tryRequire('@react-native-ml-kit/text-recognition'));
+  return Boolean(requireImagePicker() && requireTextRecognition());
 }
 
 async function pickImageUri(source: 'camera' | 'library'): Promise<string | null> {
-  const picker = tryRequire('react-native-image-picker');
+  const picker = requireImagePicker();
   if (!picker) {
     throw new ScanUnavailable('Camera module is not available in this build');
   }
@@ -51,7 +62,7 @@ async function pickImageUri(source: 'camera' | 'library'): Promise<string | null
 
 /** Run ML Kit text recognition on a local image uri, returning the raw text. */
 async function ocr(uri: string): Promise<string> {
-  const mod = tryRequire('@react-native-ml-kit/text-recognition');
+  const mod = requireTextRecognition();
   const TextRecognition = mod?.default ?? mod;
   if (!TextRecognition?.recognize) {
     throw new ScanUnavailable('OCR module is not available in this build');

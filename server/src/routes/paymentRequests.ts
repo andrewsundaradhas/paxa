@@ -82,15 +82,22 @@ paymentRequestsRouter.get(
   '/',
   asyncHandler(async (req: AuthedRequest, res) => {
     const me = req.user!.id;
+    // Join the creditor so a payer can be redirected to the payee's UPI app.
     const rows = await db
-      .select()
+      .select({
+        pr: paymentRequests,
+        payeeVpa: users.payoutVpa,
+        payeeName: users.displayName,
+      })
       .from(paymentRequests)
+      .innerJoin(users, eq(users.id, paymentRequests.fromUser))
       .where(or(eq(paymentRequests.fromUser, me), eq(paymentRequests.toUser, me)))
       .orderBy(desc(paymentRequests.createdAt))
       .limit(200);
+    const shaped = rows.map(r => ({...r.pr, payeeVpa: r.payeeVpa, payeeName: r.payeeName}));
     res.json({
-      owedToMe: rows.filter(r => r.fromUser === me),
-      iOwe: rows.filter(r => r.toUser === me),
+      owedToMe: shaped.filter(r => r.fromUser === me),
+      iOwe: shaped.filter(r => r.toUser === me),
     });
   }),
 );

@@ -19,9 +19,20 @@ export class OAuthUnavailable extends Error {}
 export class OAuthCancelled extends Error {}
 
 /* eslint-disable @typescript-eslint/no-var-requires */
-function tryRequire(name: string): any | null {
+// Literal requires (wrapped in try/catch) so Metro can treat them as OPTIONAL
+// dependencies — the bundle succeeds whether or not the native module is
+// installed (see metro.config.js → resolver.allowOptionalDependencies).
+function requireGoogleSignin(): any | null {
   try {
-    return require(name);
+    return require('@react-native-google-signin/google-signin');
+  } catch {
+    return null;
+  }
+}
+
+function requireAppleAuth(): any | null {
+  try {
+    return require('@invertase/react-native-apple-authentication');
   } catch {
     return null;
   }
@@ -31,7 +42,7 @@ let googleConfigured = false;
 
 /** Trigger the Google account picker and return a verified-by-Google ID token. */
 export async function signInWithGoogle(): Promise<string> {
-  const mod = tryRequire('@react-native-google-signin/google-signin');
+  const mod = requireGoogleSignin();
   if (!mod?.GoogleSignin) {
     throw new OAuthUnavailable('Google sign-in is not available in this build');
   }
@@ -71,7 +82,7 @@ export async function signInWithApple(): Promise<AppleResult> {
   if (Platform.OS !== 'ios') {
     throw new OAuthUnavailable('Apple sign-in is available on iOS');
   }
-  const mod = tryRequire('@invertase/react-native-apple-authentication');
+  const mod = requireAppleAuth();
   const appleAuth = mod?.appleAuth ?? mod?.default;
   if (!appleAuth) {
     throw new OAuthUnavailable('Apple sign-in is not available in this build');

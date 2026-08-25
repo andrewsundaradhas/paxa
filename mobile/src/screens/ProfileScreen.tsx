@@ -1,27 +1,48 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {colors, fonts, softShadow} from '../theme';
+import {colors, fonts, radius, softShadow} from '../theme';
 import {BackButton} from '../components/common';
 import {TabBar} from '../components/TabBar';
 import {useAppStore} from '../store/useAppStore';
-import {logout, useSession} from '../auth/session';
+import {logout, updateProfile, useSession} from '../auth/session';
 import type {ScreenProps} from '../navigation/types';
 
 const STICKER_COLORS = [colors.pink, colors.cyan, colors.khaki];
-const SETTINGS: {glyph: string; label: string; value: string; tint: string}[] = [
-  {glyph: '💳', label: 'Payment methods', value: 'riya@okhdfc', tint: '#e3eef5'},
-  {glyph: '🔔', label: 'Notifications', value: 'On', tint: '#f6e6f3'},
-  {glyph: '🔒', label: 'Privacy & security', value: '', tint: '#edf7cf'},
-  {glyph: '💬', label: 'Help & support', value: '', tint: '#f0ecdd'},
+const VPA_RE = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+const SETTINGS: {glyph: string; label: string; tint: string}[] = [
+  {glyph: '🔔', label: 'Notifications', tint: '#f6e6f3'},
+  {glyph: '🔒', label: 'Privacy & security', tint: '#edf7cf'},
+  {glyph: '💬', label: 'Help & support', tint: '#f0ecdd'},
 ];
 
 export const ProfileScreen: React.FC<ScreenProps<'Profile'>> = ({navigation}) => {
   const userColor = useAppStore(s => s.userColor);
   const setUserColor = useAppStore(s => s.setUserColor);
   const groupCount = useAppStore(s => s.groups.length);
+  const flash = useAppStore(s => s.flash);
   const user = useSession(s => s.user);
   const isAuthed = useSession(s => s.status) === 'authed';
+
+  const [vpa, setVpa] = useState(user?.payoutVpa ?? '');
+  const [savingVpa, setSavingVpa] = useState(false);
+  const vpaValid = VPA_RE.test(vpa.trim());
+  const vpaDirty = vpa.trim() !== (user?.payoutVpa ?? '');
+
+  const onLinkUpi = async () => {
+    if (!vpaValid || savingVpa) {
+      return;
+    }
+    setSavingVpa(true);
+    try {
+      await updateProfile({payoutVpa: vpa.trim()});
+      flash('UPI ID linked — you can now receive payments');
+    } catch {
+      flash('Could not save your UPI ID — check the format');
+    } finally {
+      setSavingVpa(false);
+    }
+  };
 
   const onSignOut = async () => {
     await logout();
@@ -70,6 +91,43 @@ export const ProfileScreen: React.FC<ScreenProps<'Profile'>> = ({navigation}) =>
           ))}
         </View>
 
+        {isAuthed && (
+          <>
+            <Text style={styles.sectionLabel}>YOUR UPI ID (TO RECEIVE PAYMENTS)</Text>
+            <View style={styles.upiCard}>
+              <View style={styles.upiRow}>
+                <Text style={styles.upiIcon}>💳</Text>
+                <TextInput
+                  style={styles.upiInput}
+                  placeholder="yourname@bank"
+                  placeholderTextColor={colors.muted2}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  value={vpa}
+                  onChangeText={setVpa}
+                />
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onLinkUpi}
+                disabled={!vpaValid || !vpaDirty || savingVpa}
+                style={[styles.upiBtn, (!vpaValid || !vpaDirty) && styles.upiBtnOff]}>
+                {savingVpa ? (
+                  <ActivityIndicator color={colors.ink} size="small" />
+                ) : (
+                  <Text style={styles.upiBtnText}>{user?.payoutVpa ? 'Update' : 'Link'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.upiHint}>
+              {user?.payoutVpa
+                ? 'When someone pays a request you sent, their UPI app opens straight to this ID.'
+                : 'Link your GPay / PhonePe / any UPI ID so friends can pay you in one tap.'}
+            </Text>
+          </>
+        )}
+
         <View style={styles.settings}>
           {SETTINGS.map((s, i) => (
             <View key={s.label} style={[styles.settingRow, i < SETTINGS.length - 1 && styles.settingBorder]}>
@@ -77,7 +135,6 @@ export const ProfileScreen: React.FC<ScreenProps<'Profile'>> = ({navigation}) =>
                 <Text style={styles.settingGlyph}>{s.glyph}</Text>
               </View>
               <Text style={styles.settingLabel}>{s.label}</Text>
-              {!!s.value && <Text style={styles.settingValue}>{s.value}</Text>}
               <Text style={styles.settingChevron}>›</Text>
             </View>
           ))}
@@ -118,6 +175,15 @@ const styles = StyleSheet.create({
   swatch: {flex: 1, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#14140f', shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: {width: 0, height: 6}, elevation: 2},
   swatchActive: {borderWidth: 2, borderColor: colors.ink},
   swatchCheck: {fontSize: 20, fontWeight: '700', color: colors.ink},
+
+  upiCard: {flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 18, padding: 8, paddingLeft: 14, ...softShadow, marginBottom: 10},
+  upiRow: {flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9},
+  upiIcon: {fontSize: 16},
+  upiInput: {flex: 1, fontSize: 15.5, fontWeight: '600', color: colors.ink, paddingVertical: 8},
+  upiBtn: {backgroundColor: colors.lime, borderRadius: radius.sm, paddingVertical: 11, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', minWidth: 72},
+  upiBtnOff: {backgroundColor: '#dfe7c4', opacity: 0.6},
+  upiBtnText: {fontFamily: fonts.display, fontWeight: '700', fontSize: 14, color: colors.ink},
+  upiHint: {fontSize: 12.5, color: colors.muted, fontWeight: '500', lineHeight: 18, marginHorizontal: 2, marginBottom: 22},
 
   settings: {backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 20, overflow: 'hidden', ...softShadow},
   settingRow: {flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 15, paddingHorizontal: 16},

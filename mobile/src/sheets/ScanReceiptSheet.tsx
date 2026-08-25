@@ -3,7 +3,7 @@ import {View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator} 
 import {colors, fonts, radius, hairline} from '../theme';
 import {LimeButton, GhostButton} from '../components/Buttons';
 import {Sheet} from '../components/Sheet';
-import {SPENDING_CATEGORIES} from '@shared/schemas';
+import {SPENDING_CATEGORIES} from '../categories';
 import {useAppStore} from '../store/useAppStore';
 import {captureAndScan, scanSupported, ScanUnavailable} from '../receipts/scan';
 import {parseReceipt} from '../receipts/parseReceipt';

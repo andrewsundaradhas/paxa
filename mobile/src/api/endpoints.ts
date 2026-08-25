@@ -38,6 +38,9 @@ export const apiLogout = (refreshToken: string) =>
 
 export const apiMe = () => apiClient.get<{user: ApiUser}>('/auth/me').then(r => r.data.user);
 
+export const apiUpdateMe = (body: {displayName?: string; payoutVpa?: string | null}) =>
+  apiClient.patch<{user: ApiUser}>('/auth/me', body).then(r => r.data.user);
+
 // ---- groups ----
 export const apiListGroups = () => apiClient.get<{groups: ApiGroup[]}>('/groups').then(r => r.data.groups);
 

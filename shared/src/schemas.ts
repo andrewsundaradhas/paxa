@@ -9,6 +9,17 @@ import {z} from 'zod';
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
 export const passwordSchema = z.string().min(8).max(128);
 
+/**
+ * UPI VPA (virtual payment address), e.g. "name@okhdfc". Validated so it can be
+ * safely dropped into a `upi://pay?pa=…` deep link without breaking the URL or
+ * letting arbitrary text through.
+ */
+export const vpaSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/, 'Enter a valid UPI ID like name@bank')
+  .max(256);
+
 export const signupSchema = z.object({
   email: emailSchema,
   password: passwordSchema,

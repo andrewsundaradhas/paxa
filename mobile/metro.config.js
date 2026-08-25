@@ -11,6 +11,10 @@ const workspaceRoot = path.resolve(projectRoot, '..');
 const config = {
   watchFolders: [workspaceRoot],
   resolver: {
+    // Optional native modules (receipt OCR / camera / Google / Apple) are loaded
+    // via `require()` inside try/catch; this lets the bundle build whether or not
+    // they're installed, so the app degrades gracefully until the next rebuild.
+    allowOptionalDependencies: true,
     nodeModulesPaths: [
       path.resolve(projectRoot, 'node_modules'),
       path.resolve(workspaceRoot, 'node_modules'),

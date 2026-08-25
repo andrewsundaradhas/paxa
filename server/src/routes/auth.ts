@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import {Router} from 'express';
 import {eq, and, isNull} from 'drizzle-orm';
 import {z} from 'zod';
-import {signupSchema, loginSchema, refreshSchema, googleAuthSchema, appleAuthSchema} from '@splitr/shared';
+import {signupSchema, loginSchema, refreshSchema, googleAuthSchema, appleAuthSchema, vpaSchema} from '@splitr/shared';
 import {db} from '../db/client';
 import {users, passwordResetTokens, refreshTokens} from '../db/schema';
 import {hashPassword, verifyPassword, signAccessToken, issueRefreshToken, rotateRefreshToken, revokeRefreshToken} from '../lib/auth';
@@ -181,7 +181,8 @@ authRouter.get(
 
 const updateMeSchema = z.object({
   displayName: z.string().trim().min(1).max(60).optional(),
-  payoutVpa: z.string().trim().max(128).nullable().optional(),
+  // Either a valid VPA to link, or null to unlink.
+  payoutVpa: vpaSchema.nullable().optional(),
 });
 
 /** PATCH /auth/me → update display name or UPI payout VPA. */

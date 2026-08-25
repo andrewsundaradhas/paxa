@@ -7,6 +7,7 @@ import {BackButton} from '../components/common';
 import {useAppStore, fmt, pairwise, MEMBERS} from '../store/useAppStore';
 import {usePaymentRequests, useMarkRequestPaid, useRemindRequest} from '../api/hooks';
 import {isLive} from '../data/liveMutations';
+import {payViaUpi} from '../payments/upi';
 import type {ApiPaymentRequest} from '../api/types';
 import type {ScreenProps} from '../navigation/types';
 
@@ -23,6 +24,8 @@ type TrackItem = {
   requestId?: string;
   groupId?: string;
   memberId?: string;
+  /** Payee UPI VPA — present on money-I-owe requests so we can redirect to UPI. */
+  payeeVpa?: string | null;
 };
 
 const daysSince = (iso: string | null): number | null => {
@@ -46,15 +49,18 @@ const ageLabel = (d: number | null): string => {
 };
 
 function fromRequest(r: ApiPaymentRequest, direction: Direction): TrackItem {
+  // iOwe: the person I owe is the creditor (payeeName); owedToMe: the payer (toName).
+  const name = direction === 'iOwe' ? r.payeeName ?? 'Someone' : r.toName;
   return {
     key: `req-${r.id}`,
-    name: r.toName,
+    name,
     amount: r.amountPaise / 100,
     direction,
     status: r.status === 'paid' ? 'paid' : 'pending',
     ageDays: daysSince(r.createdAt),
     source: 'request',
     requestId: r.id,
+    payeeVpa: direction === 'iOwe' ? r.payeeVpa : undefined,
   };
 }
 
@@ -112,8 +118,17 @@ export const TrackingScreen: React.FC<ScreenProps<'Tracking'>> = ({navigation}) 
   const totOwe = iOwe.filter(i => i.status === 'pending').reduce((s, i) => s + i.amount, 0);
   const totOwed = owedToMe.filter(i => i.status === 'pending').reduce((s, i) => s + i.amount, 0);
 
-  const onPay = (it: TrackItem) => {
+  const onPay = async (it: TrackItem) => {
     if (it.source === 'request' && it.requestId) {
+      // Redirect to the payee's UPI app when we have their VPA, then mark paid.
+      if (it.payeeVpa) {
+        const res = await payViaUpi({vpa: it.payeeVpa, name: it.name, amount: it.amount, note: 'paxa request'});
+        if (res === 'no-app') {
+          flash(`No UPI app found · pay ${it.payeeVpa}`);
+        }
+      } else {
+        flash(`${it.name} hasn't linked a UPI ID yet`);
+      }
       markPaid.mutate(it.requestId, {onSuccess: () => flash('Marked as paid')});
     } else if (it.groupId) {
       setGroupId(it.groupId);
@@ -173,7 +188,7 @@ export const TrackingScreen: React.FC<ScreenProps<'Tracking'>> = ({navigation}) 
           title="Money I owe"
           empty="You're all clear — nothing to pay."
           items={iOwe}
-          actionLabel="Mark paid"
+          actionLabel="Pay"
           onAction={onPay}
         />
         <Section

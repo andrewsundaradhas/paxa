@@ -5,6 +5,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import * as Sentry from '@sentry/react-native';
 import {RootNavigator} from './src/navigation';
 import {AppBootstrap} from './src/bootstrap/AppBootstrap';
+import {ErrorBoundary} from './src/components/ErrorBoundary';
 import {SENTRY_DSN, APP_ENV} from './src/config';
 
 const queryClient = new QueryClient();
@@ -19,13 +20,15 @@ if (SENTRY_DSN) {
 
 const App = () => (
   <SafeAreaProvider>
-    <QueryClientProvider client={queryClient}>
-      <AppBootstrap>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </AppBootstrap>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppBootstrap>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </AppBootstrap>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </SafeAreaProvider>
 );
 

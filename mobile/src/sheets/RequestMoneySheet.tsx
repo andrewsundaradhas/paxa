@@ -3,7 +3,7 @@ import {View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView} from 'r
 import {colors, fonts, radius, hairline} from '../theme';
 import {LimeButton} from '../components/Buttons';
 import {Sheet} from '../components/Sheet';
-import {SPENDING_CATEGORIES} from '@shared/schemas';
+import {SPENDING_CATEGORIES} from '../categories';
 import {useAppStore, MEMBERS} from '../store/useAppStore';
 import {submitPaymentRequest} from '../data/liveMutations';
 

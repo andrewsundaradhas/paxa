@@ -5,7 +5,7 @@
  * Everything here is heuristic and deliberately conservative — the review screen
  * lets the user correct anything, so we favour "a sensible guess" over cleverness.
  */
-import type {SpendingCategory} from '@shared/schemas';
+import type {SpendingCategory} from '../categories';
 
 export interface ParsedReceipt {
   merchant: string | null;

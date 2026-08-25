@@ -110,6 +110,9 @@ export type ApiPaymentRequest = {
   remindedAt: string | null;
   paidAt: string | null;
   createdAt: string;
+  /** Creditor's linked UPI VPA + name — lets a payer be redirected to UPI. */
+  payeeVpa?: string | null;
+  payeeName?: string | null;
 };
 
 export type PaymentRequestBuckets = {owedToMe: ApiPaymentRequest[]; iOwe: ApiPaymentRequest[]};
