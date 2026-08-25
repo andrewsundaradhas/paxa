@@ -16,6 +16,16 @@ import {
   apiListSettlements,
   apiInitiateSettlement,
   apiConfirmSettlement,
+  apiListPaymentRequests,
+  apiCreatePaymentRequest,
+  apiMarkRequestPaid,
+  apiCancelRequest,
+  apiRemindRequest,
+  apiListNotifications,
+  apiMarkNotificationRead,
+  apiMarkAllNotificationsRead,
+  apiGetInsights,
+  apiListReceipts,
 } from './endpoints';
 
 export const qk = {
@@ -24,6 +34,10 @@ export const qk = {
   balances: (id: string) => ['balances', id] as const,
   expenses: (id: string) => ['expenses', id] as const,
   settlements: (id: string) => ['settlements', id] as const,
+  paymentRequests: ['paymentRequests'] as const,
+  notifications: ['notifications'] as const,
+  insights: (period?: string) => ['insights', period ?? 'current'] as const,
+  receipts: ['receipts'] as const,
 };
 
 export const useGroups = () => useQuery({queryKey: qk.groups, queryFn: apiListGroups});
@@ -92,3 +106,65 @@ export function useConfirmSettlement(groupId: string) {
     },
   });
 }
+
+// ---- payment requests ----
+export const usePaymentRequests = () =>
+  useQuery({queryKey: qk.paymentRequests, queryFn: apiListPaymentRequests});
+
+export function useCreatePaymentRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: apiCreatePaymentRequest,
+    onSuccess: () => qc.invalidateQueries({queryKey: qk.paymentRequests}),
+  });
+}
+
+export function useMarkRequestPaid() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiMarkRequestPaid(id),
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: qk.paymentRequests});
+      qc.invalidateQueries({queryKey: qk.insights()});
+    },
+  });
+}
+
+export function useCancelRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiCancelRequest(id),
+    onSuccess: () => qc.invalidateQueries({queryKey: qk.paymentRequests}),
+  });
+}
+
+export function useRemindRequest() {
+  return useMutation({mutationFn: (id: string) => apiRemindRequest(id)});
+}
+
+// ---- notifications ----
+export const useNotifications = () =>
+  useQuery({queryKey: qk.notifications, queryFn: apiListNotifications});
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiMarkNotificationRead(id),
+    onSuccess: () => qc.invalidateQueries({queryKey: qk.notifications}),
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: apiMarkAllNotificationsRead,
+    onSuccess: () => qc.invalidateQueries({queryKey: qk.notifications}),
+  });
+}
+
+// ---- insights ----
+export const useInsights = (period?: string) =>
+  useQuery({queryKey: qk.insights(period), queryFn: () => apiGetInsights({period})});
+
+// ---- receipts ----
+export const useReceipts = () => useQuery({queryKey: qk.receipts, queryFn: apiListReceipts});

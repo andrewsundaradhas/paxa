@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import DeviceInfo from 'react-native-device-info';
 import {configureAuth} from '../api/client';
-import {apiLogin, apiSignup, apiRefresh, apiLogout} from '../api/endpoints';
+import {apiLogin, apiSignup, apiRefresh, apiLogout, apiGoogleAuth, apiAppleAuth} from '../api/endpoints';
 import type {ApiUser, AuthResponse} from '../api/types';
 import {storeRefreshToken, getRefreshToken, clearRefreshToken} from '../security/SecureStorage';
 
@@ -51,6 +51,16 @@ export async function login(email: string, password: string): Promise<void> {
 
 export async function signup(email: string, password: string, displayName: string): Promise<void> {
   await apply(await apiSignup({email, password, displayName, deviceId: getDeviceId()}));
+}
+
+/** Continue with Google — exchange a Google ID token for a paxa session. */
+export async function loginWithGoogle(idToken: string): Promise<void> {
+  await apply(await apiGoogleAuth({idToken, deviceId: getDeviceId()}));
+}
+
+/** Continue with Apple — exchange an Apple identity token for a paxa session. */
+export async function loginWithApple(identityToken: string, fullName?: string): Promise<void> {
+  await apply(await apiAppleAuth({identityToken, fullName, deviceId: getDeviceId()}));
 }
 
 /** Silent rotation used by the API client on a 401. Uses the in-memory token (no biometric prompt). */

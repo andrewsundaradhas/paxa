@@ -9,6 +9,12 @@ import type {
   ApiExpense,
   ApiSettlement,
   InitiateSettlementResponse,
+  ApiReceipt,
+  ReceiptItem,
+  ApiPaymentRequest,
+  PaymentRequestBuckets,
+  ApiNotification,
+  InsightPayload,
 } from './types';
 
 // ---- auth ----
@@ -20,6 +26,12 @@ export const apiLogin = (body: {email: string; password: string; deviceId?: stri
 
 export const apiRefresh = (refreshToken: string) =>
   apiClient.post<AuthResponse>('/auth/refresh', {refreshToken}).then(r => r.data);
+
+export const apiGoogleAuth = (body: {idToken: string; deviceId?: string}) =>
+  apiClient.post<AuthResponse>('/auth/google', body).then(r => r.data);
+
+export const apiAppleAuth = (body: {identityToken: string; fullName?: string; deviceId?: string}) =>
+  apiClient.post<AuthResponse>('/auth/apple', body).then(r => r.data);
 
 export const apiLogout = (refreshToken: string) =>
   apiClient.post('/auth/logout', {refreshToken}).then(r => r.data);
@@ -82,3 +94,58 @@ export const apiConfirmSettlement = (id: string, upiRef?: string) =>
 // ---- devices ----
 export const apiRegisterDevice = (body: {pushToken: string; platform: 'ios' | 'android'; deviceId: string}) =>
   apiClient.post('/devices/register', body).then(r => r.data);
+
+// ---- receipts ----
+export const apiCreateReceipt = (body: {
+  merchant?: string;
+  category?: string;
+  amount: number;
+  receiptDate?: string;
+  rawText?: string;
+  items?: ReceiptItem[];
+  groupId?: string;
+}) => apiClient.post<{receipt: ApiReceipt}>('/receipts', body).then(r => r.data.receipt);
+
+export const apiListReceipts = () => apiClient.get<{receipts: ApiReceipt[]}>('/receipts').then(r => r.data.receipts);
+
+export const apiDeleteReceipt = (id: string) => apiClient.delete(`/receipts/${id}`).then(r => r.data);
+
+// ---- payment requests ----
+export const apiCreatePaymentRequest = (body: {
+  toUserId?: string;
+  toName?: string;
+  amount: number;
+  note?: string;
+  category?: string;
+  receiptId?: string;
+  groupId?: string;
+  dueAt?: string;
+}) => apiClient.post<{paymentRequest: ApiPaymentRequest}>('/payment-requests', body).then(r => r.data.paymentRequest);
+
+export const apiListPaymentRequests = () =>
+  apiClient.get<PaymentRequestBuckets>('/payment-requests').then(r => r.data);
+
+export const apiMarkRequestPaid = (id: string) =>
+  apiClient.post<{paymentRequest: ApiPaymentRequest}>(`/payment-requests/${id}/paid`, {}).then(r => r.data.paymentRequest);
+
+export const apiCancelRequest = (id: string) =>
+  apiClient.post<{paymentRequest: ApiPaymentRequest}>(`/payment-requests/${id}/cancel`, {}).then(r => r.data.paymentRequest);
+
+export const apiRemindRequest = (id: string) =>
+  apiClient.post<{ok: boolean}>(`/payment-requests/${id}/remind`, {}).then(r => r.data);
+
+// ---- notifications ----
+export const apiListNotifications = () =>
+  apiClient.get<{notifications: ApiNotification[]; unread: number}>('/notifications').then(r => r.data);
+
+export const apiMarkNotificationRead = (id: string) =>
+  apiClient.post(`/notifications/${id}/read`, {}).then(r => r.data);
+
+export const apiMarkAllNotificationsRead = () =>
+  apiClient.post('/notifications/read-all', {}).then(r => r.data);
+
+// ---- insights ----
+export const apiGetInsights = (params?: {period?: string; refresh?: boolean}) =>
+  apiClient
+    .get<InsightPayload>('/insights', {params: {period: params?.period, refresh: params?.refresh ? 1 : undefined}})
+    .then(r => r.data);
