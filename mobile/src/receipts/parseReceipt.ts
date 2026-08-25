@@ -43,8 +43,9 @@ const CATEGORY_KEYWORDS: [SpendingCategory, RegExp][] = [
   ['Food', /(restaurant|cafe|café|hotel|dhaba|pizza|burger|kitchen|foods?|dine|biryani|swiggy|zomato|bakery|coffee|tea|bar\b|resto)/i],
   ['Groceries', /(super\s*market|supermarket|grocery|groceries|mart|kirana|provisions?|bigbasket|dmart|reliance\s*fresh|more\b)/i],
   ['Travel', /(uber|ola|rapido|cab|taxi|petrol|fuel|diesel|indian\s*oil|hpcl|bpcl|irctc|airlines|flight|metro|bus|toll|parking)/i],
+  // Entertainment before Shopping so "PVR … Forum Mall" isn't mis-tagged as Shopping.
+  ['Entertainment', /(cinema|movie|pvr|inox|bookmyshow|gaming|netflix|spotify|nightclub|\bpub\b|concert|events?)/i],
   ['Shopping', /(mall|fashion|apparel|clothing|store|lifestyle|myntra|amazon|flipkart|electronics|shoppe|retail)/i],
-  ['Entertainment', /(cinema|movie|pvr|inox|bookmyshow|game|gaming|netflix|spotify|club|pub|events?)/i],
   ['Bills', /(electricity|water\s*bill|gas\s*bill|broadband|recharge|postpaid|utility|dth|internet|mobile\s*bill)/i],
   ['Education', /(school|college|university|tuition|course|academy|institute|books?\s*(store|shop))/i],
 ];

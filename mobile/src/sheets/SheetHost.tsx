@@ -2,6 +2,8 @@ import React from 'react';
 import {AddExpenseSheet} from './AddExpenseSheet';
 import {CreateGroupSheet} from './CreateGroupSheet';
 import {SettleSheet} from './SettleSheet';
+import {RequestMoneySheet} from './RequestMoneySheet';
+import {ScanReceiptSheet} from './ScanReceiptSheet';
 import {SuccessOverlay} from './SuccessOverlay';
 import {Toast} from '../components/Toast';
 
@@ -15,6 +17,8 @@ export const SheetHost: React.FC = () => (
     <AddExpenseSheet />
     <CreateGroupSheet />
     <SettleSheet />
+    <RequestMoneySheet />
+    <ScanReceiptSheet />
     <SuccessOverlay />
     <Toast />
   </>

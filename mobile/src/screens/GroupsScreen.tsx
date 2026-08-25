@@ -3,14 +3,14 @@ import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {colors, fonts, radius, softShadow, tintOf} from '../theme';
 import {TabBar} from '../components/TabBar';
-import {useAppStore, fmt, youOweTotal, owedToYouTotal, groupSettled, topCreditor} from '../store/useAppStore';
+import {useAppStore, fmt, youOweTotal, owedToYouTotal, groupSettled} from '../store/useAppStore';
 import type {ScreenProps} from '../navigation/types';
 
 const QUICK = [
   {key: 'add', label: 'Add', tint: '#edf7cf', glyph: '＋', glyphColor: '#3f6b00'},
-  {key: 'settle', label: 'Settle', tint: '#e3eef5', glyph: '⇄', glyphColor: '#1f5b86'},
   {key: 'request', label: 'Request', tint: '#f6e6f3', glyph: '↓', glyphColor: '#8a2178'},
-  {key: 'activity', label: 'Activity', tint: '#f0ecdd', glyph: '∿', glyphColor: '#6b6630'},
+  {key: 'scan', label: 'Scan', tint: '#e3eef5', glyph: '⌁', glyphColor: '#1f5b86'},
+  {key: 'insights', label: 'Insights', tint: '#f0ecdd', glyph: '∿', glyphColor: '#6b6630'},
 ];
 
 export const GroupsScreen: React.FC<ScreenProps<'Home'>> = ({navigation}) => {
@@ -20,6 +20,8 @@ export const GroupsScreen: React.FC<ScreenProps<'Home'>> = ({navigation}) => {
   const userColor = useAppStore(s => s.userColor);
   const setGroupId = useAppStore(s => s.setGroupId);
   const openSheet = useAppStore(s => s.openSheet);
+  const openRequestSheet = useAppStore(s => s.openRequestSheet);
+  const openScanSheet = useAppStore(s => s.openScanSheet);
   const flash = useAppStore(s => s.flash);
 
   let totOwe = 0;
@@ -39,20 +41,18 @@ export const GroupsScreen: React.FC<ScreenProps<'Home'>> = ({navigation}) => {
 
   const onQuick = (key: string) => {
     if (key === 'add') {
-      setGroupId('goa');
-      navigation.navigate('GroupDetail');
-      openSheet('addExpense');
-    } else if (key === 'settle') {
-      setGroupId('goa');
-      navigation.navigate('GroupDetail');
-      const goa = groups.find(g => g.id === 'goa');
-      if (goa) {
-        openSheet('settle', topCreditor(goa, settledPairs).id);
+      const first = groups[0];
+      if (first) {
+        setGroupId(first.id);
+        navigation.navigate('GroupDetail');
       }
+      openSheet('addExpense');
     } else if (key === 'request') {
-      flash('Payment requests sent via UPI');
-    } else if (key === 'activity') {
-      navigation.navigate('Activity');
+      openRequestSheet();
+    } else if (key === 'scan') {
+      openScanSheet();
+    } else if (key === 'insights') {
+      navigation.navigate('Insights');
     }
   };
 
@@ -108,6 +108,21 @@ export const GroupsScreen: React.FC<ScreenProps<'Home'>> = ({navigation}) => {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* pending payments → Tracking */}
+        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Tracking')} style={styles.pendingStrip}>
+          <View style={styles.pendingIcon}>
+            <Text style={styles.pendingGlyph}>☑</Text>
+          </View>
+          <View style={styles.pendingMid}>
+            <Text style={styles.pendingTitle}>Pending payments</Text>
+            <Text style={styles.pendingSub}>
+              {totOwe > 0 ? `You owe ${fmt(totOwe)}` : 'Nothing to pay'}
+              {totOwed > 0 ? ` · ${fmt(totOwed)} owed to you` : ''}
+            </Text>
+          </View>
+          <Text style={styles.pendingChevron}>›</Text>
+        </TouchableOpacity>
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>Your groups</Text>
@@ -196,6 +211,14 @@ const styles = StyleSheet.create({
   quickIcon: {width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center'},
   quickGlyph: {fontSize: 20, fontWeight: '700'},
   quickLabel: {fontSize: 12, fontWeight: '600', color: colors.ink},
+
+  pendingStrip: {flexDirection: 'row', alignItems: 'center', gap: 13, ...card, borderRadius: radius.card, padding: 13, paddingHorizontal: 15, marginBottom: 22},
+  pendingIcon: {width: 42, height: 42, borderRadius: 14, backgroundColor: '#edf7cf', alignItems: 'center', justifyContent: 'center'},
+  pendingGlyph: {fontSize: 19, color: '#3f6b00'},
+  pendingMid: {flex: 1, minWidth: 0},
+  pendingTitle: {fontSize: 15, fontWeight: '600', color: colors.ink},
+  pendingSub: {fontSize: 12.5, color: colors.muted, fontWeight: '500', marginTop: 2},
+  pendingChevron: {fontSize: 24, color: colors.muted2, fontWeight: '400'},
 
   sectionRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 2, marginBottom: 14},
   sectionTitle: {fontFamily: fonts.display, fontWeight: '700', fontSize: 18, color: colors.ink, letterSpacing: -0.2},

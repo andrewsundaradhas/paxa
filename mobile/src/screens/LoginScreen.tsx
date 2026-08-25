@@ -4,6 +4,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {colors, fonts, radius} from '../theme';
 import {LimeButton} from '../components/Buttons';
 import {LogoBadge, Wordmark} from '../components/common';
+import {SocialAuthButtons} from '../components/SocialAuthButtons';
 import {login} from '../auth/session';
 import {hydrateFromApi} from '../data/hydrateFromApi';
 import {useAppStore} from '../store/useAppStore';
@@ -61,6 +62,11 @@ export const LoginScreen: React.FC<ScreenProps<'Login'>> = ({navigation}) => {
 
         <LimeButton label={busy ? 'Signing in…' : 'Continue'} onPress={onLogin} disabled={busy} style={styles.cta} />
         {busy && <ActivityIndicator style={styles.spinner} color={colors.ink} />}
+
+        <SocialAuthButtons
+          onDone={() => navigation.replace('Home')}
+          onError={msg => setError(msg)}
+        />
 
         <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.linkRow}>
           <Text style={styles.linkMuted}>New to paxa? </Text>

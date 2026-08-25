@@ -1,4 +1,12 @@
-import {apiAddExpense, apiCreateGroup, apiInitiateSettlement, apiConfirmSettlement} from '../api/endpoints';
+import {
+  apiAddExpense,
+  apiCreateGroup,
+  apiInitiateSettlement,
+  apiConfirmSettlement,
+  apiCreatePaymentRequest,
+  apiCreateReceipt,
+} from '../api/endpoints';
+import type {ReceiptItem} from '../api/types';
 import {useSession} from '../auth/session';
 import {hydrateFromApi} from './hydrateFromApi';
 import {useAppStore, computeSplits, splitValid, type ExpenseForm, type GroupForm} from '../store/useAppStore';
@@ -102,4 +110,65 @@ export async function submitSettlement(
 
   useAppStore.getState().doPay();
   return {payeeVpa: res.payeeVpa, payeeName: res.payeeName};
+}
+
+export type PaymentRequestInput = {
+  toUserId?: string;
+  toName: string;
+  amount: number;
+  note?: string;
+  category?: string;
+  receiptId?: string;
+};
+
+/**
+ * Create a money request. Live: POSTs and returns true. Demo/guest: no backend,
+ * so we just confirm optimistically (the Tracking screen derives demo pending
+ * items from group balances). `isLive` lets callers refresh live caches.
+ */
+export async function submitPaymentRequest(input: PaymentRequestInput): Promise<boolean> {
+  if (input.amount <= 0 || !input.toName.trim()) {
+    return false;
+  }
+  if (!live()) {
+    return true;
+  }
+  await apiCreatePaymentRequest({
+    toUserId: input.toUserId,
+    toName: input.toName.trim(),
+    amount: input.amount,
+    note: input.note,
+    category: input.category,
+    receiptId: input.receiptId,
+  });
+  return true;
+}
+
+export type ReceiptInput = {
+  merchant?: string;
+  amount: number;
+  category?: string;
+  receiptDate?: string;
+  rawText?: string;
+  items?: ReceiptItem[];
+};
+
+/** Persist a reviewed scanned receipt (live only); returns its id or null. */
+export async function submitReceipt(input: ReceiptInput): Promise<string | null> {
+  if (!live() || input.amount <= 0) {
+    return null;
+  }
+  const receipt = await apiCreateReceipt({
+    merchant: input.merchant,
+    amount: input.amount,
+    category: input.category,
+    receiptDate: input.receiptDate,
+    rawText: input.rawText,
+    items: input.items,
+  });
+  return receipt.id;
+}
+
+export function isLive(): boolean {
+  return live();
 }

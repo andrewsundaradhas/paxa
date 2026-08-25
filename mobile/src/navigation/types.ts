@@ -6,6 +6,8 @@ export type RootStackParamList = {
   GroupDetail: undefined;
   Bill: undefined;
   Activity: undefined;
+  Tracking: undefined;
+  Insights: undefined;
   Profile: undefined;
   Login: undefined;
   Signup: undefined;

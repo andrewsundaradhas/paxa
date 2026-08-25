@@ -50,7 +50,17 @@ export type SettlementRecord = {
 
 export type SplitMode = 'equal' | 'exact' | 'percent' | 'shares';
 export type GroupTab = 'balances' | 'expenses' | 'history';
-export type SheetName = 'addExpense' | 'createGroup' | 'settle' | 'success';
+export type SheetName = 'addExpense' | 'createGroup' | 'settle' | 'success' | 'requestMoney' | 'scanReceipt';
+
+/** Values used to pre-fill the Request-money sheet (e.g. from a scanned receipt). */
+export type RequestPrefill = {
+  amount?: string;
+  toName?: string;
+  toUserId?: string;
+  note?: string;
+  category?: string;
+  receiptId?: string;
+};
 
 export type ExpenseForm = {
   title: string;
@@ -304,6 +314,11 @@ type AppState = {
   closeSheet: () => void;
   setSettleMethod: (m: 'upi' | 'card') => void;
 
+  // request money / scan receipt
+  requestPrefill: RequestPrefill | null;
+  openRequestSheet: (prefill?: RequestPrefill) => void;
+  openScanSheet: () => void;
+
   // add expense
   patchExp: (patch: Partial<ExpenseForm>) => void;
   addExpense: () => boolean;
@@ -337,6 +352,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   sheet: null,
   settleMethod: 'upi',
   settleTarget: null,
+  requestPrefill: null,
 
   exp: null,
   grp: null,
@@ -391,6 +407,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   closeSheet: () => set({sheet: null}),
   setSettleMethod: m => set({settleMethod: m}),
+
+  openRequestSheet: prefill => set({sheet: 'requestMoney', requestPrefill: prefill ?? null}),
+  openScanSheet: () => set({sheet: 'scanReceipt'}),
 
   patchExp: patch => {
     const exp = get().exp;

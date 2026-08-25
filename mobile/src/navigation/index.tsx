@@ -6,6 +6,8 @@ import {GroupsScreen} from '../screens/GroupsScreen';
 import {GroupDetailScreen} from '../screens/GroupDetailScreen';
 import {BillDetailScreen} from '../screens/BillDetailScreen';
 import {ActivityScreen} from '../screens/ActivityScreen';
+import {TrackingScreen} from '../screens/TrackingScreen';
+import {InsightsScreen} from '../screens/InsightsScreen';
 import {ProfileScreen} from '../screens/ProfileScreen';
 import {LoginScreen} from '../screens/LoginScreen';
 import {SignupScreen} from '../screens/SignupScreen';
@@ -30,6 +32,8 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
         <Stack.Screen name="Bill" component={BillDetailScreen} />
         <Stack.Screen name="Activity" component={ActivityScreen} />
+        <Stack.Screen name="Tracking" component={TrackingScreen} />
+        <Stack.Screen name="Insights" component={InsightsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />

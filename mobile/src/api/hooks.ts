@@ -108,8 +108,8 @@ export function useConfirmSettlement(groupId: string) {
 }
 
 // ---- payment requests ----
-export const usePaymentRequests = () =>
-  useQuery({queryKey: qk.paymentRequests, queryFn: apiListPaymentRequests});
+export const usePaymentRequests = (enabled = true) =>
+  useQuery({queryKey: qk.paymentRequests, queryFn: apiListPaymentRequests, enabled});
 
 export function useCreatePaymentRequest() {
   const qc = useQueryClient();
@@ -163,8 +163,12 @@ export function useMarkAllNotificationsRead() {
 }
 
 // ---- insights ----
-export const useInsights = (period?: string) =>
-  useQuery({queryKey: qk.insights(period), queryFn: () => apiGetInsights({period})});
+export const useInsights = (period?: string, enabled = true) =>
+  useQuery({queryKey: qk.insights(period), queryFn: () => apiGetInsights({period}), enabled});
+
+// ---- notifications (gated) ----
+export const useNotificationsGated = (enabled = true) =>
+  useQuery({queryKey: qk.notifications, queryFn: apiListNotifications, enabled});
 
 // ---- receipts ----
 export const useReceipts = () => useQuery({queryKey: qk.receipts, queryFn: apiListReceipts});
