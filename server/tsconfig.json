@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2021",
     "module": "CommonJS",
-    "moduleResolution": "node",
+    "moduleResolution": "node10",
     "lib": ["ES2021"],
     "strict": true,
     "esModuleInterop": true,
@@ -10,7 +10,6 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "@splitr/shared": ["../shared/src/index.ts"],
       "@splitr/shared/*": ["../shared/src/*"]

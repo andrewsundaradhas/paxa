@@ -26,6 +26,20 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(10),
 });
 
+/** Continue with Google — the client sends the Google ID token (JWT). */
+export const googleAuthSchema = z.object({
+  idToken: z.string().min(20),
+  deviceId: z.string().max(128).optional(),
+});
+
+/** Continue with Apple — identity token + (first sign-in only) the name Apple
+ * returns exactly once. Later sign-ins omit the name, so we keep the stored one. */
+export const appleAuthSchema = z.object({
+  identityToken: z.string().min(20),
+  fullName: z.string().trim().max(80).optional(),
+  deviceId: z.string().max(128).optional(),
+});
+
 export const splitModeSchema = z.enum(['equal', 'exact', 'percent', 'shares']);
 
 export const createGroupSchema = z.object({
@@ -60,6 +74,57 @@ export const registerDeviceSchema = z.object({
   platform: z.enum(['ios', 'android']),
   deviceId: z.string().min(1).max(128),
 });
+
+/** Canonical spending categories used across receipts, requests and insights. */
+export const categorySchema = z.enum([
+  'Food',
+  'Travel',
+  'Shopping',
+  'Entertainment',
+  'Bills',
+  'Education',
+  'Groceries',
+  'Other',
+]);
+export const SPENDING_CATEGORIES = categorySchema.options;
+
+const receiptItemSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  pricePaise: z.number().int().nonnegative().max(1_000_000_000),
+  qty: z.number().positive().max(1000).optional(),
+});
+
+/** A user-reviewed scanned receipt (OCR ran on-device before this call). */
+export const createReceiptSchema = z.object({
+  merchant: z.string().trim().max(120).optional(),
+  category: categorySchema.default('Other'),
+  amount: z.number().positive().max(10_000_000), // rupees
+  receiptDate: z.string().datetime().optional(),
+  rawText: z.string().max(20_000).optional(),
+  items: z.array(receiptItemSchema).max(200).optional(),
+  groupId: z.string().uuid().optional(),
+});
+
+/** Create a 1:1 (or off-app) money request. Payer is a paxa user or a name. */
+export const createPaymentRequestSchema = z
+  .object({
+    toUserId: z.string().uuid().optional(),
+    toName: z.string().trim().min(1).max(60).optional(),
+    amount: z.number().positive().max(10_000_000), // rupees
+    note: z.string().max(280).optional(),
+    category: categorySchema.default('Other'),
+    receiptId: z.string().uuid().optional(),
+    groupId: z.string().uuid().optional(),
+    dueAt: z.string().datetime().optional(),
+  })
+  .refine(v => Boolean(v.toUserId) || Boolean(v.toName), {
+    message: 'Provide toUserId or toName',
+    path: ['toName'],
+  });
+
+export type CreateReceipt = z.infer<typeof createReceiptSchema>;
+export type CreatePaymentRequest = z.infer<typeof createPaymentRequestSchema>;
+export type SpendingCategory = z.infer<typeof categorySchema>;
 
 export type Signup = z.infer<typeof signupSchema>;
 export type Login = z.infer<typeof loginSchema>;

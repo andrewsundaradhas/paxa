@@ -15,6 +15,20 @@
       "when": 1751587200000,
       "tag": "0001_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1756080000000,
+      "tag": "0002_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1756080600000,
+      "tag": "0003_oauth",
+      "breakpoints": true
     }
   ]
 }

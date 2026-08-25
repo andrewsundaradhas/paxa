@@ -12,11 +12,19 @@ const now = (name: string) => timestamp(name, {withTimezone: true}).defaultNow()
 export const users = pgTable('users', {
   id: id(),
   email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+  // Nullable: OAuth-only accounts (Google/Apple) have no password.
+  passwordHash: text('password_hash'),
   displayName: text('display_name').notNull(),
   emailVerified: boolean('email_verified').notNull().default(false),
   stickerColor: text('sticker_color').notNull().default('#fa00ff'),
   payoutVpa: text('payout_vpa'), // the user's OWN UPI id, stored only with consent
+  // Sign-in method + provider subject id. 'password' | 'google' | 'apple'.
+  // Account-linking: a Google/Apple sign-in matched to an existing email adopts
+  // that account instead of creating a duplicate.
+  authProvider: text('auth_provider').notNull().default('password'),
+  googleSub: text('google_sub'),
+  appleSub: text('apple_sub'),
+  avatarUrl: text('avatar_url'),
   createdAt: now('created_at'),
   updatedAt: now('updated_at'),
 });
@@ -145,4 +153,92 @@ export const devicePushTokens = pgTable(
     createdAt: now('created_at'),
   },
   t => ({uniqDevice: unique('uniq_user_device').on(t.userId, t.deviceId)}),
+);
+
+/**
+ * A scanned bill/receipt. OCR runs on-device (ML Kit); the app posts the
+ * user-reviewed structured result here. `items` holds line items as JSON.
+ * The image itself is not stored server-side — only extracted fields — to keep
+ * storage light and avoid holding user photos.
+ */
+export const receipts = pgTable(
+  'receipts',
+  {
+    id: id(),
+    userId: uuid('user_id').notNull().references(() => users.id, {onDelete: 'cascade'}),
+    groupId: uuid('group_id').references(() => groups.id, {onDelete: 'set null'}),
+    merchant: text('merchant'),
+    category: text('category').notNull().default('Other'),
+    totalPaise: integer('total_paise').notNull(),
+    receiptDate: timestamp('receipt_date', {withTimezone: true}),
+    rawText: text('raw_text'), // full OCR text, kept for re-parsing / user reference
+    items: jsonb('items'), // [{name, qtyPaise?, pricePaise}]
+    status: text('status').notNull().default('reviewed'), // 'reviewed' | 'converted'
+    createdAt: now('created_at'),
+    deletedAt: timestamp('deleted_at', {withTimezone: true}),
+  },
+  t => ({userIdx: index('receipt_user_idx').on(t.userId)}),
+);
+
+/**
+ * A request for money from one person to another. The payer may be a paxa user
+ * (`toUser`) or an off-app contact (`toName` only). Kept deliberately separate
+ * from group `settlements` so 1:1 "you owe me" requests work without a group.
+ */
+export const paymentRequests = pgTable(
+  'payment_requests',
+  {
+    id: id(),
+    fromUser: uuid('from_user').notNull().references(() => users.id, {onDelete: 'cascade'}), // creditor
+    toUser: uuid('to_user').references(() => users.id, {onDelete: 'set null'}), // payer, if a paxa user
+    toName: text('to_name').notNull(), // display name of the payer (always set)
+    amountPaise: integer('amount_paise').notNull(),
+    note: text('note'),
+    category: text('category').notNull().default('Other'),
+    status: text('status').notNull().default('pending'), // 'pending' | 'paid' | 'cancelled'
+    receiptId: uuid('receipt_id').references(() => receipts.id, {onDelete: 'set null'}),
+    groupId: uuid('group_id').references(() => groups.id, {onDelete: 'set null'}),
+    dueAt: timestamp('due_at', {withTimezone: true}),
+    remindedAt: timestamp('reminded_at', {withTimezone: true}),
+    paidAt: timestamp('paid_at', {withTimezone: true}),
+    createdAt: now('created_at'),
+  },
+  t => ({
+    fromIdx: index('preq_from_idx').on(t.fromUser),
+    toIdx: index('preq_to_idx').on(t.toUser),
+    statusIdx: index('preq_status_idx').on(t.status),
+  }),
+);
+
+/** Persistent in-app notifications / reminders. */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: id(),
+    userId: uuid('user_id').notNull().references(() => users.id, {onDelete: 'cascade'}),
+    type: text('type').notNull(), // 'payment_request' | 'reminder' | 'paid' | 'system'
+    title: text('title').notNull(),
+    body: text('body'),
+    data: jsonb('data'), // deep-link payload, e.g. {paymentRequestId}
+    readAt: timestamp('read_at', {withTimezone: true}),
+    createdAt: now('created_at'),
+  },
+  t => ({userIdx: index('notif_user_idx').on(t.userId, t.readAt)}),
+);
+
+/**
+ * Cached spending insights per user per calendar month (`YYYY-MM`). Computed by
+ * the server from the user's own history so the dashboard opens instantly
+ * without recomputing on every load. Upserted on the unique (user, period) key.
+ */
+export const spendingInsights = pgTable(
+  'spending_insights',
+  {
+    id: id(),
+    userId: uuid('user_id').notNull().references(() => users.id, {onDelete: 'cascade'}),
+    period: text('period').notNull(), // 'YYYY-MM'
+    payload: jsonb('payload').notNull(), // {totals, categories, insights[]}
+    generatedAt: now('generated_at'),
+  },
+  t => ({uniqPeriod: unique('uniq_user_period').on(t.userId, t.period)}),
 );

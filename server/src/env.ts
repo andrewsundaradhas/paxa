@@ -21,4 +21,8 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   corsOrigins: (process.env.CORS_ORIGINS ?? '').split(',').map(s => s.trim()).filter(Boolean),
   isProd: (process.env.NODE_ENV ?? 'development') === 'production',
+  // Accepted OAuth audiences (comma-separated). Google: web + iOS + android client
+  // ids. Apple: the app bundle id(s) / services id. Empty ⇒ that provider is off.
+  googleClientIds: (process.env.GOOGLE_CLIENT_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean),
+  appleClientIds: (process.env.APPLE_CLIENT_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean),
 };

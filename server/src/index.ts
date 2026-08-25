@@ -9,6 +9,11 @@ import {groupsRouter} from './routes/groups';
 import {expensesRouter} from './routes/expenses';
 import {settlementsRouter, settlementStatusRouter} from './routes/settlements';
 import {devicesRouter} from './routes/devices';
+import {receiptsRouter} from './routes/receipts';
+import {paymentRequestsRouter} from './routes/paymentRequests';
+import {notificationsRouter} from './routes/notifications';
+import {insightsRouter} from './routes/insights';
+import {authLimiter} from './lib/rateLimits';
 
 const app = express();
 
@@ -41,10 +46,10 @@ app.use(
 );
 app.use(express.json({limit: '256kb'}));
 
-// Global rate limit; auth endpoints get a stricter one. Limits are relaxed in dev so tests pass cleanly.
+// Global rate limit; per-feature limiters live in ./lib/rateLimits and are
+// applied inside each router. Limits are relaxed in dev so tests pass cleanly.
 const isProd = env.nodeEnv === 'production';
 app.use(rateLimit({windowMs: 60_000, max: isProd ? 120 : 2000, standardHeaders: true, legacyHeaders: false}));
-const authLimiter = rateLimit({windowMs: 15 * 60_000, max: isProd ? 30 : 500, standardHeaders: true, legacyHeaders: false});
 
 app.get('/health', (_req, res) => res.json({ok: true}));
 
@@ -55,6 +60,10 @@ app.use('/groups/:groupId/expenses', requireAuth, expensesRouter);
 app.use('/groups/:groupId/settlements', requireAuth, settlementsRouter);
 app.use('/settlements', requireAuth, settlementStatusRouter);
 app.use('/devices', devicesRouter);
+app.use('/receipts', receiptsRouter);
+app.use('/payment-requests', paymentRequestsRouter);
+app.use('/notifications', notificationsRouter);
+app.use('/insights', insightsRouter);
 
 app.use(errorHandler);
 

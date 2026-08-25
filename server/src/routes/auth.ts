@@ -2,11 +2,12 @@ import crypto from 'crypto';
 import {Router} from 'express';
 import {eq, and, isNull} from 'drizzle-orm';
 import {z} from 'zod';
-import {signupSchema, loginSchema, refreshSchema} from '@splitr/shared';
+import {signupSchema, loginSchema, refreshSchema, googleAuthSchema, appleAuthSchema} from '@splitr/shared';
 import {db} from '../db/client';
 import {users, passwordResetTokens, refreshTokens} from '../db/schema';
 import {hashPassword, verifyPassword, signAccessToken, issueRefreshToken, rotateRefreshToken, revokeRefreshToken} from '../lib/auth';
 import {asyncHandler, badRequest, unauthorized, notFound, conflict, audit} from '../lib/http';
+import {verifyGoogle, verifyApple, type OAuthIdentity} from '../lib/oauth';
 import {requireAuth, type AuthedRequest} from '../middleware';
 import {env} from '../env';
 
@@ -40,9 +41,11 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const {email, password, deviceId} = loginSchema.parse(req.body);
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    // Constant-ish work whether or not the user exists (don't leak which emails are registered).
-    const ok = user ? await verifyPassword(password, user.passwordHash) : await verifyPassword(password, '$2a$12$' + 'x'.repeat(53));
-    if (!user || !ok) {
+    // Constant-ish work whether or not the user (or a password) exists — don't
+    // leak which emails are registered, or which accounts are social-only.
+    const dummyHash = '$2a$12$' + 'x'.repeat(53);
+    const ok = await verifyPassword(password, user?.passwordHash ?? dummyHash);
+    if (!user || !user.passwordHash || !ok) {
       throw unauthorized('Invalid email or password');
     }
     const accessToken = signAccessToken({sub: user.id, email: user.email});
@@ -209,4 +212,6 @@ const publicUser = (u: UserRow) => ({
   stickerColor: u.stickerColor,
   payoutVpa: u.payoutVpa,
   emailVerified: u.emailVerified,
+  avatarUrl: u.avatarUrl,
+  authProvider: u.authProvider,
 });

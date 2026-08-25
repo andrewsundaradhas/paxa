@@ -26,12 +26,14 @@ if (rnConfigDotenv.exists()) {
  */
 react {
     /* Folders */
+    //   Resolve node_modules: mobile/node_modules first, then hoisted monorepo root.
+    def rnModulesDir = new File(projectDir, "../../node_modules/react-native").exists()
+        ? "../../node_modules"
+        : "../../../node_modules"
     root = file("../../")
-    reactNativeDir = file("../../node_modules/react-native")
-    codegenDir = file(new File("../../node_modules/@react-native/codegen").exists()
-        ? "../../node_modules/@react-native/codegen"
-        : "../../../node_modules/@react-native/codegen")
-    cliFile = file("../../node_modules/react-native/cli.js")
+    reactNativeDir = file("$rnModulesDir/react-native")
+    codegenDir = file("$rnModulesDir/@react-native/codegen")
+    cliFile = file("$rnModulesDir/react-native/cli.js")
 
     /* Variants */
     //   The list of variants to that are debuggable. For those we're going to
@@ -127,7 +129,7 @@ android {
 }
 
 dependencies {
-    // The version of react-native is set by the React Native Gradle Plugin
+
     implementation("com.facebook.react:react-android")
 
     if (hermesEnabled.toBoolean()) {
@@ -143,3 +145,4 @@ if (nativeModulesGradle.exists()) {
 } else {
     apply from: file("../../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
 }
+
