@@ -15,6 +15,8 @@ ENV NODE_ENV=production
 COPY --from=builder --chown=node:node /app/server/dist ./dist
 COPY --from=builder --chown=node:node /app/server/package.json ./
 COPY --from=builder --chown=node:node /app/server/migrations ./migrations
+COPY --from=builder --chown=node:node /app/shared/dist ./shared/dist
+COPY --from=builder --chown=node:node /app/shared/package.json ./shared/package.json
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 USER node
 EXPOSE 4000

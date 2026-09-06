@@ -3,7 +3,7 @@
  * Soft-deletes via `deletedAt`. Designed for Supabase Postgres; enable
  * Row-Level Security on these tables in production (see README).
  */
-import {pgTable, uuid, text, integer, timestamp, boolean, jsonb, unique, index} from 'drizzle-orm/pg-core';
+import {pgTable, uuid, text, integer, timestamp, boolean, jsonb, unique, index, check} from 'drizzle-orm/pg-core';
 import {sql} from 'drizzle-orm';
 
 const id = () => uuid('id').primaryKey().default(sql`gen_random_uuid()`);
@@ -60,7 +60,11 @@ export const groupMembers = pgTable(
     role: text('role').notNull().default('member'), // 'owner' | 'member'
     joinedAt: now('joined_at'),
   },
-  t => ({uniqMember: unique('uniq_group_member').on(t.groupId, t.userId), gIdx: index('member_group_idx').on(t.groupId)}),
+  t => ({
+    uniqMember: unique('uniq_group_member').on(t.groupId, t.userId),
+    gIdx: index('member_group_idx').on(t.groupId),
+    roleCheck: check('group_members_role_valid', sql`${t.role} IN ('owner', 'member')`),
+  }),
 );
 
 export const groupInvites = pgTable('group_invites', {
@@ -86,7 +90,11 @@ export const expenses = pgTable(
     createdAt: now('created_at'),
     deletedAt: timestamp('deleted_at', {withTimezone: true}),
   },
-  t => ({gIdx: index('expense_group_idx').on(t.groupId)}),
+  t => ({
+    gIdx: index('expense_group_idx').on(t.groupId),
+    paidIdx: index('expenses_paid_by_idx').on(t.paidBy),
+    amountCheck: check('expenses_amount_paise_positive', sql`${t.amountPaise} > 0`),
+  }),
 );
 
 export const expenseSplits = pgTable(
@@ -97,7 +105,11 @@ export const expenseSplits = pgTable(
     userId: uuid('user_id').notNull().references(() => users.id),
     sharePaise: integer('share_paise').notNull(),
   },
-  t => ({uniqSplit: unique('uniq_expense_split').on(t.expenseId, t.userId)}),
+  t => ({
+    uniqSplit: unique('uniq_expense_split').on(t.expenseId, t.userId),
+    userIdx: index('expense_splits_user_idx').on(t.userId),
+    shareCheck: check('expense_splits_share_nonnegative', sql`${t.sharePaise} >= 0`),
+  }),
 );
 
 export const settlements = pgTable(
@@ -115,7 +127,14 @@ export const settlements = pgTable(
     createdAt: now('created_at'),
     completedAt: timestamp('completed_at', {withTimezone: true}),
   },
-  t => ({gIdx: index('settlement_group_idx').on(t.groupId)}),
+  t => ({
+    gIdx: index('settlement_group_idx').on(t.groupId),
+    fromIdx: index('settlements_from_user_idx').on(t.fromUser),
+    toIdx: index('settlements_to_user_idx').on(t.toUser),
+    statusIdx: index('settlements_status_idx').on(t.status),
+    amountCheck: check('settlements_amount_paise_positive', sql`${t.amountPaise} > 0`),
+    statusCheck: check('settlements_status_valid', sql`${t.status} IN ('initiated', 'completed', 'failed')`),
+  }),
 );
 
 export const auditLog = pgTable('audit_log', {
@@ -138,7 +157,27 @@ export const passwordResetTokens = pgTable(
     usedAt: timestamp('used_at', {withTimezone: true}),
     createdAt: now('created_at'),
   },
-  t => ({userIdx: index('prt_user_idx').on(t.userId), hashIdx: index('prt_hash_idx').on(t.tokenHash)}),
+  t => ({
+    userIdx: index('prt_user_idx').on(t.userId),
+    hashIdx: index('prt_hash_idx').on(t.tokenHash),
+  }),
+);
+
+/** Single-use email-confirmation tokens (H-04). Same shape as reset tokens. */
+export const emailVerificationTokens = pgTable(
+  'email_verification_tokens',
+  {
+    id: id(),
+    userId: uuid('user_id').notNull().references(() => users.id, {onDelete: 'cascade'}),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', {withTimezone: true}).notNull(),
+    usedAt: timestamp('used_at', {withTimezone: true}),
+    createdAt: now('created_at'),
+  },
+  t => ({
+    userIdx: index('email_verify_token_user_idx').on(t.userId),
+    hashIdx: index('email_verify_hash_idx').on(t.tokenHash),
+  }),
 );
 
 export const devicePushTokens = pgTable(
@@ -177,7 +216,10 @@ export const receipts = pgTable(
     createdAt: now('created_at'),
     deletedAt: timestamp('deleted_at', {withTimezone: true}),
   },
-  t => ({userIdx: index('receipt_user_idx').on(t.userId)}),
+  t => ({
+    userIdx: index('receipt_user_idx').on(t.userId),
+    totalCheck: check('receipts_total_paise_positive', sql`${t.totalPaise} > 0`),
+  }),
 );
 
 /**
@@ -207,6 +249,9 @@ export const paymentRequests = pgTable(
     fromIdx: index('preq_from_idx').on(t.fromUser),
     toIdx: index('preq_to_idx').on(t.toUser),
     statusIdx: index('preq_status_idx').on(t.status),
+    amountCheck: check('payment_requests_amount_paise_positive', sql`${t.amountPaise} > 0`),
+    statusCheck: check('payment_requests_status_valid', sql`${t.status} IN ('pending', 'paid', 'cancelled')`),
+    targetCheck: check('payment_requests_target_one_of', sql`${t.toUser} IS NOT NULL OR ${t.toName} IS NOT NULL`),
   }),
 );
 

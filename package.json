@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "bootstrap": "npm install",
-    "build": "npm run build --workspaces",
+    "build": "npm -w @splitr/shared run build && npm -w server run build",
     "lint": "npm run lint --workspaces",
     "typecheck": "npm run typecheck --workspaces"
   },
@@ -18,10 +18,11 @@
     "metro": "^0.80.12",
     "typescript": "^5.6.0"
   },
-  "comment:overrides": "Security patches for transitive deps (SCA report). brace-expansion 2.x keeps the 1.x expand() API so it is safe to unify. shell-quote/esbuild are single-major upgrades. Omitted deliberately: minimatch and fast-xml-parser (major bumps break glob@7 and the RN Android CLI), and js-yaml (majors 3 and 4 have incompatible APIs, so transitive copies can't be unified without breaking consumers).",
+  "comment:overrides": "Security patches for transitive deps (SCA report). brace-expansion 2.1.4 (fixed CVE versions: the previous 2.1.2 pin was inside the vulnerable range). shell-quote/esbuild are single-major upgrades. Omitted deliberately: minimatch and fast-xml-parser (major bumps break glob@7 and the RN Android CLI), js-yaml (majors 3 and 4 have incompatible APIs, so transitive copies can't be unified without breaking consumers; dev-only risk), qs/body-parser (express 5 is a breaking upgrade), image-size/decode-uri-component (metro and react-navigation majors are breaking).",
   "overrides": {
-    "brace-expansion": "2.1.2",
+    "brace-expansion": "2.1.4",
     "shell-quote": "1.10.0",
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "nanoid": "3.3.18"
   }
 }

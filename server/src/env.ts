@@ -1,6 +1,9 @@
 import 'dotenv/config';
 
-/** Validate + expose environment once at boot; crash early if misconfigured. */
+/**
+ * Validate + expose environment once at boot; crash early if misconfigured.
+ * Values are read at import time — each process must be started with env set.
+ */
 function required(name: string): string {
   const v = process.env[name];
   if (!v) {
@@ -21,6 +24,11 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   corsOrigins: (process.env.CORS_ORIGINS ?? '').split(',').map(s => s.trim()).filter(Boolean),
   isProd: (process.env.NODE_ENV ?? 'development') === 'production',
+  // Public base URL used to build email links (password reset, verification).
+  appUrl: (process.env.APP_URL ?? process.env.RESEND_URL ?? 'http://localhost:4000').replace(/\/$/, ''),
+  // Resend transactional email. Empty ⇒ email is disabled (dev only).
+  resendApiKey: process.env.RESEND_API_KEY ?? '',
+  emailFrom: process.env.EMAIL_FROM ?? 'Paxa <no-reply@no-reply.paxa.app>',
   // Accepted OAuth audiences (comma-separated). Google: web + iOS + android client
   // ids. Apple: the app bundle id(s) / services id. Empty ⇒ that provider is off.
   googleClientIds: (process.env.GOOGLE_CLIENT_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean),

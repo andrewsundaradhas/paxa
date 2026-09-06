@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {and, eq, isNull} from 'drizzle-orm';
+import {and, desc, eq, isNull} from 'drizzle-orm';
 import {addExpenseSchema, computeShares, validateShares, rupeesToPaise} from '@splitr/shared';
 import {db} from '../db/client';
 import {groupMembers, expenses, expenseSplits} from '../db/schema';
@@ -14,11 +14,17 @@ expensesRouter.use(requireGroupMember);
 expensesRouter.get(
   '/',
   asyncHandler(async (req, res) => {
+    // Pagination: cap results, newest first. `limit` is clamped to 1–200.
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 100) || 100, 1), 200);
+    const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0);
     const rows = await db
       .select()
       .from(expenses)
-      .where(and(eq(expenses.groupId, req.params.groupId), isNull(expenses.deletedAt)));
-    res.json({expenses: rows});
+      .where(and(eq(expenses.groupId, req.params.groupId), isNull(expenses.deletedAt)))
+      .orderBy(desc(expenses.createdAt))
+      .limit(limit)
+      .offset(offset);
+    res.json({expenses: rows, limit, offset});
   }),
 );
 

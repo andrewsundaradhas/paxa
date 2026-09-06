@@ -2,8 +2,8 @@ import {Router} from 'express';
 import {and, desc, eq, isNull} from 'drizzle-orm';
 import {createReceiptSchema, rupeesToPaise} from '@splitr/shared';
 import {db} from '../db/client';
-import {receipts} from '../db/schema';
-import {asyncHandler, notFound, audit} from '../lib/http';
+import {receipts, groupMembers} from '../db/schema';
+import {asyncHandler, notFound, badRequest, audit} from '../lib/http';
 import {requireAuth, type AuthedRequest} from '../middleware';
 import {receiptLimiter} from '../lib/rateLimits';
 
@@ -18,6 +18,19 @@ receiptsRouter.post(
   asyncHandler(async (req: AuthedRequest, res) => {
     const me = req.user!.id;
     const body = createReceiptSchema.parse(req.body);
+
+    // Validate groupId against the caller's group memberships.
+    if (body.groupId) {
+      const [membership] = await db
+        .select({id: groupMembers.id})
+        .from(groupMembers)
+        .where(and(eq(groupMembers.groupId, body.groupId), eq(groupMembers.userId, me)))
+        .limit(1);
+      if (!membership) {
+        throw badRequest('You are not a member of that group');
+      }
+    }
+
     const [created] = await db
       .insert(receipts)
       .values({

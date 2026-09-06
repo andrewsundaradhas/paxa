@@ -10,11 +10,8 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
-    "paths": {
-      "@splitr/shared": ["../shared/src/index.ts"],
-      "@splitr/shared/*": ["../shared/src/*"]
-    }
+    "rootDir": "src"
   },
-  "include": ["src/**/*", "drizzle.config.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -22,7 +22,6 @@ export const GroupsScreen: React.FC<ScreenProps<'Home'>> = ({navigation}) => {
   const openSheet = useAppStore(s => s.openSheet);
   const openRequestSheet = useAppStore(s => s.openRequestSheet);
   const openScanSheet = useAppStore(s => s.openScanSheet);
-  const flash = useAppStore(s => s.flash);
 
   let totOwe = 0;
   let totOwed = 0;

@@ -2,7 +2,7 @@ import {Router} from 'express';
 import {and, desc, eq, or} from 'drizzle-orm';
 import {createPaymentRequestSchema, rupeesToPaise, formatPaise} from '@splitr/shared';
 import {db} from '../db/client';
-import {paymentRequests, notifications, users} from '../db/schema';
+import {paymentRequests, notifications, users, groupMembers, receipts} from '../db/schema';
 import {asyncHandler, badRequest, notFound, forbidden, audit} from '../lib/http';
 import {requireAuth, type AuthedRequest} from '../middleware';
 import {paymentLimiter, notificationLimiter} from '../lib/rateLimits';
@@ -29,6 +29,29 @@ paymentRequestsRouter.post(
     const body = createPaymentRequestSchema.parse(req.body);
     if (body.toUserId === me) {
       throw badRequest('You cannot request money from yourself');
+    }
+
+    // Attaching an optional group/receipt is only allowed for resources the
+    // caller actually owns or belongs to.
+    if (body.groupId) {
+      const [membership] = await db
+        .select({id: groupMembers.id})
+        .from(groupMembers)
+        .where(and(eq(groupMembers.groupId, body.groupId), eq(groupMembers.userId, me)))
+        .limit(1);
+      if (!membership) {
+        throw badRequest('You are not a member of that group');
+      }
+    }
+    if (body.receiptId) {
+      const [receipt] = await db
+        .select({id: receipts.id})
+        .from(receipts)
+        .where(and(eq(receipts.id, body.receiptId), eq(receipts.userId, me)))
+        .limit(1);
+      if (!receipt) {
+        throw badRequest('Receipt not found');
+      }
     }
 
     // Resolve the payer's display name when they are a paxa user.

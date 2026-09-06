@@ -29,6 +29,20 @@
       "when": 1756080600000,
       "tag": "0003_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1756122000000,
+      "tag": "0004_data_integrity",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1756122600000,
+      "tag": "0005_email_verification",
+      "breakpoints": true
     }
   ]
 }

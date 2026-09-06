@@ -4,12 +4,13 @@ import {eq, and, isNull} from 'drizzle-orm';
 import {z} from 'zod';
 import {signupSchema, loginSchema, refreshSchema, googleAuthSchema, appleAuthSchema, vpaSchema} from '@splitr/shared';
 import {db} from '../db/client';
-import {users, passwordResetTokens, refreshTokens} from '../db/schema';
+import {users, passwordResetTokens, refreshTokens, emailVerificationTokens} from '../db/schema';
 import {hashPassword, verifyPassword, signAccessToken, issueRefreshToken, rotateRefreshToken, revokeRefreshToken} from '../lib/auth';
 import {asyncHandler, badRequest, unauthorized, notFound, conflict, audit} from '../lib/http';
 import {verifyGoogle, verifyApple, type OAuthIdentity} from '../lib/oauth';
 import {requireAuth, type AuthedRequest} from '../middleware';
 import {env} from '../env';
+import {sendPasswordResetEmail, sendVerificationEmail} from '../lib/email';
 
 export const authRouter = Router();
 
@@ -21,6 +22,8 @@ authRouter.post(
 
     const [existing] = await db.select({id: users.id}).from(users).where(eq(users.email, email)).limit(1);
     if (existing) {
+      // Account already exists with this email. Don't disclose; treat as success
+      // so attackers can't enumerate registered addresses.
       throw conflict('An account with that email already exists');
     }
 
@@ -29,6 +32,10 @@ authRouter.post(
 
     const accessToken = signAccessToken({sub: user.id, email: user.email});
     const refreshToken = await issueRefreshToken(user.id, deviceId);
+
+    // Send a verification email (soft-fail; the account is usable unverified).
+    await issueVerificationToken(user.id, email);
+
     await audit(user.id, 'signup', 'user', user.id);
 
     res.status(201).json({accessToken, refreshToken, user: publicUser(user)});
@@ -104,6 +111,89 @@ async function upsertOAuthUser(identity: OAuthIdentity): Promise<UserRow> {
     return created;
   });
 }
+
+/**
+ * Create a single-use email-verification token and deliver it: email in prod,
+ * console log in dev.
+ */
+async function issueVerificationToken(userId: string, email: string): Promise<void> {
+  await db
+    .update(emailVerificationTokens)
+    .set({usedAt: new Date()})
+    .where(and(eq(emailVerificationTokens.userId, userId), isNull(emailVerificationTokens.usedAt)));
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await db.insert(emailVerificationTokens).values({userId, tokenHash, expiresAt});
+
+  if (env.isProd) {
+    await sendVerificationEmail(email, rawToken);
+  } else {
+    console.log(`[DEV] Email verification link: /auth/verify-email?token=${rawToken}`);
+  }
+}
+
+const verificationTokenSchema = z.object({
+  token: z.string().min(32).max(128),
+});
+
+/**
+ * POST /auth/verify-email → mark the user's email as verified. The raw token is
+ * single-use; balance the accidental-resent case by allowing a re-issue.
+ */
+authRouter.post(
+  '/verify-email',
+  asyncHandler(async (req, res) => {
+    const {token} = verificationTokenSchema.parse(req.body);
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const [row] = await db
+      .select()
+      .from(emailVerificationTokens)
+      .where(and(eq(emailVerificationTokens.tokenHash, tokenHash), isNull(emailVerificationTokens.usedAt)))
+      .limit(1);
+
+    if (!row || row.expiresAt.getTime() < Date.now()) {
+      throw badRequest('Verification link is invalid or has expired');
+    }
+
+    await db.transaction(async tx => {
+      await tx.update(emailVerificationTokens).set({usedAt: new Date()}).where(eq(emailVerificationTokens.id, row.id));
+      // Link-then-verify: if OAuth already created this user, reusing the email
+      // simply flips the verified flag.
+      await tx.update(users).set({emailVerified: true, updatedAt: new Date()}).where(eq(users.id, row.userId));
+    });
+
+    await audit(row.userId, 'verify_email', 'user', row.userId);
+    res.json({ok: true, message: 'Email verified.'});
+  }),
+);
+
+const sendVerificationSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+/** POST /auth/send-verification → re-send a verification email for an existing unverified account. */
+authRouter.post(
+  '/send-verification',
+  asyncHandler(async (req, res) => {
+    const {email} = sendVerificationSchema.parse(req.body);
+    const [user] = await db
+      .select({id: users.id, email: users.email, emailVerified: users.emailVerified})
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (user && !user.emailVerified) {
+      await issueVerificationToken(user.id, user.email);
+      await audit(user.id, 'resend_verification', 'user', user.id);
+    }
+
+    // Always 200 — don't reveal whether the email is registered/verified.
+    res.json({ok: true, message: 'If needed, a verification email has been sent.'});
+  }),
+);
 
 /** Issue tokens for a resolved user and shape the auth response. */
 async function issueSession(user: UserRow, deviceId: string | undefined, res: import('express').Response) {
@@ -231,13 +321,13 @@ authRouter.post(
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
       await db.insert(passwordResetTokens).values({userId: user.id, tokenHash, expiresAt});
 
-      if (env.nodeEnv !== 'production') {
+      if (env.isProd) {
+        // Soft-fail: a down email provider must not break the anti-enumeration
+        // contract (the client is told "sent" either way).
+        await sendPasswordResetEmail(user.email, rawToken);
+      } else {
         // Dev: log the link so you can test without an email provider.
         console.log(`[DEV] Password reset link: /auth/reset-password?token=${rawToken}`);
-      } else {
-        // TODO: send email via your provider (Resend, Postmark, etc.)
-        // await sendResetEmail(user.email, rawToken);
-        console.log(`[PROD] Send reset email to ${user.email} — email provider not yet wired`);
       }
       await audit(user.id, 'forgot_password', 'user', user.id);
     }

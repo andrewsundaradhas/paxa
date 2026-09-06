@@ -23,6 +23,11 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      # Build shared first: server's `tsc --noEmit` resolves `@splitr/shared`
+      # via its CJS `main` field, which needs `dist/` to exist.
+      - name: Build shared
+        run: npm -w @splitr/shared run build
+
       - name: Typecheck shared
         run: npm -w shared run typecheck
 
@@ -32,5 +37,16 @@ jobs:
       - name: Typecheck mobile
         run: npm -w mobile run typecheck
 
+      - name: Build server
+        run: npm -w server run build
+
+      - name: Lint mobile
+        run: npm -w mobile run lint
+
       - name: Domain logic test (split/balance engine)
         run: npm -w mobile run test:logic
+
+      # Catch new vulnerable transitive deps before they enter main.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+        continue-on-error: true

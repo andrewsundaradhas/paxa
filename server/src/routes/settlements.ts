@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {and, eq} from 'drizzle-orm';
+import {and, desc, eq} from 'drizzle-orm';
 import {z} from 'zod';
 import {initiateSettlementSchema, rupeesToPaise} from '@splitr/shared';
 import {db} from '../db/client';
@@ -70,8 +70,16 @@ settlementsRouter.post(
 settlementsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const rows = await db.select().from(settlements).where(eq(settlements.groupId, req.params.groupId));
-    res.json({settlements: rows});
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 100) || 100, 1), 200);
+    const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0);
+    const rows = await db
+      .select()
+      .from(settlements)
+      .where(eq(settlements.groupId, req.params.groupId))
+      .orderBy(desc(settlements.createdAt))
+      .limit(limit)
+      .offset(offset);
+    res.json({settlements: rows, limit, offset});
   }),
 );
 
