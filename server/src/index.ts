@@ -67,6 +67,15 @@ app.use('/insights', insightsRouter);
 
 app.use(errorHandler);
 
+// Last-resort process guards: log instead of dying silently. A supervisor
+// (PM2 / the host's auto-restart) should still restart on a hard crash.
+process.on('unhandledRejection', reason => {
+  console.error('UnhandledRejection:', reason);
+});
+process.on('uncaughtException', err => {
+  console.error('UncaughtException:', err);
+});
+
 app.listen(env.port, () => {
   console.log(`paxa API listening on :${env.port} (${env.nodeEnv})`);
 });

@@ -34,6 +34,10 @@
 	</dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>paxa uses Face ID to unlock your account and protect your session.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>paxa uses the camera to scan receipts and read the total for you.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>paxa lets you upload a receipt photo from your library to scan it.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>upi</string>
